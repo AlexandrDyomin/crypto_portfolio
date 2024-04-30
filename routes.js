@@ -15,8 +15,12 @@ var routes = {
 
 async function sendIndexPage(req, res) {
     try {
+        var isLogined = true;
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end(renderFile('./index.pug', { cache: true }));
+        res.end(renderFile('./index.pug', { 
+            cache: true,
+            isLogined
+        }));
     } catch (err) {
         handleError(res, err);
     }
