@@ -1,0 +1,13 @@
+extends ../layout/layout.pug
+include ../blocks/entrance/entrance.pug
+
+block scripts
+    script(type="module", src="sign_up/index.js")
+
+block content
+    h1 Создайте свой аккаунт
+    main
+        +entrance({ action, loginPlaceholder, passwordPlaceholder, buttonText })   
+    nav.nav 
+        p.nav__text Уже есть аккаунт? 
+            a.nav__link(href=linkToLogin) Войти

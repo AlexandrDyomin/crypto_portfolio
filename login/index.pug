@@ -1,0 +1,17 @@
+extends ../layout/layout.pug
+include ../blocks/entrance/entrance.pug
+
+block scripts
+    script(type="module", src="login/index.js")
+
+block content
+    if isLogined
+        h1 Вход
+        main
+            +entrance({ action, loginPlaceholder, passwordPlaceholder, buttonText })      
+        nav.nav 
+            p.nav__text Ещё нет аккаунта? 
+                a.nav__link(href=linkToSignUp) Создать аккаунт
+    else 
+        script(type="module").
+            window.location.pathname = '/';
