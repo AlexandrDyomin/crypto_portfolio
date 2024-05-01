@@ -2,14 +2,22 @@
   "name": "crypto_portfolio",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "type": "module",
-  "scripts": {
-    "start": "node --env-file .env index.js"
-  },
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "start": "parcel build && node --env-file .env index.js",
+    "build": "parcel build"
+  },
+  "source": [
+    "login/index.js",
+    "sign_up/index.js",
+    "layout/layout.css"
+  ],
   "dependencies": {
     "pug": "^3.0.2"
+  },
+  "devDependencies": {
+    "parcel": "^2.12.0"
   }
 }

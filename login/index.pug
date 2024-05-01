@@ -2,7 +2,7 @@ extends ../layout/layout.pug
 include ../blocks/entrance/entrance.pug
 
 block scripts
-    script(type="module", src="login/index.js")
+    script(type="module", src="dist/login/index.js" defer)
 
 block content
     if isLogined
