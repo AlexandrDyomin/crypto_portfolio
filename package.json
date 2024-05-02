@@ -15,6 +15,7 @@
     "layout/layout.css"
   ],
   "dependencies": {
+    "pg": "^8.11.5",
     "pug": "^3.0.2"
   },
   "devDependencies": {
