@@ -9,6 +9,7 @@ var routes = {
     '/': sendIndexPage,
     '/login': sendLoginPage,
     '/sign_up': sendSignUpPage,
+    '/create_accaunt': createAccaunt,
     sendResource,
     postPage404
 };
@@ -49,7 +50,7 @@ async function sendSignUpPage(req, res) {
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.end(renderFile('./sign_up/index.pug', { 
             cache: true,
-            action: `${PROTOCOL}://${HOST}:${PORT}/login`,
+            action: `${PROTOCOL}://${HOST}:${PORT}/create_accaunt`,
             loginPlaceholder: 'Логин',
             passwordPlaceholder: 'Пароль',
             buttonText: 'Создать аккаунт',
@@ -80,6 +81,31 @@ function handleError(res, err, codeResponse = 500, headers = { 'Content-Type': '
     console.log(err);
     res.writeHead(codeResponse, headers);
     res.end(err.message);
+}
+
+function createAccaunt(req, res) {
+    let body = []; 
+    req.on('data', (chunk) => accumulateChunks(body, chunk));
+    req.on('end', () => {
+        mergeChunks(body);
+        let data = parceQS(body[0].toString());
+        console.log(data)
+        res.end('1');
+
+    });
+}
+
+function accumulateChunks(container, chunk) {
+    container.push(chunk);
+}
+
+function mergeChunks(container) {
+    return Buffer.concat(container);
+}
+
+function parceQS(qs) {
+    var data = qs.split('&').map((item) => item.split('='));
+    return Object.fromEntries(data);
 }
 
 export default routes;
