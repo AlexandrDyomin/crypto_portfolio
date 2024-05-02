@@ -60,16 +60,12 @@ async function sendSignUpPage(req, res) {
     }
 }
 
-function sendResource(req, res, { extention, cacheControl = 'public, max-age=604800' }) {
-    var contentTypes = {
-        '.js': 'application/javascript',
-        '.css': 'text/css'
-    };
-    var contentType = contentTypes[extention];
+function sendResource(req, res, { contentType, cacheControl = 'public, max-age=604800' }) {
     try {
-        if (!contentType) throw Error('Тип файла не поддерживается');
+        if (!contentType) throw Error('Тип контента не определён');
+        var resource = readFileSync(`.${req.url}`);
         res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl});
-        res.end(readFileSync(`.${req.url}`));
+        res.end(resource);
     } catch(err) {
         handleError(res, err);
     }

@@ -13,9 +13,10 @@ async function handleRequest(req, res) {
     res.setHeader('Access-Control-Allow-Origin', `http://${HOST}:${PORT}`);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
     
-    var extention = req.url.match(/\.\w+$/)?.[0];
-    if (extention) {
-        routes.sendResource(req, res, { extention });
+    var isResourceReq = /\.\w+$/.test(req.url);
+    if (isResourceReq) {
+        var contentType = defineContentType(req.url);
+        routes.sendResource(req, res, { contentType });
         return;
     }
     
@@ -25,4 +26,15 @@ async function handleRequest(req, res) {
 
 function handleConnection() {
     console.log(`Server is running on ${PROTOCOL}://${HOST}:${PORT}`);
+}
+
+function defineContentType(url) {
+    var contentTypes = {
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.map': 'text/plain',
+        '.ico': 'image/x-icon'
+    };
+    var extention = url.match(/\.\w+$/)?.[0];
+    return contentTypes[extention];
 }
