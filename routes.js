@@ -1,5 +1,6 @@
 import { renderFile } from 'pug';
 import { readFileSync } from 'fs';
+import pool from './pgPool.js';
 
 const PROTOCOL = process.env.PROTOCOL;
 const HOST = process.env.HOST;
