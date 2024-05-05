@@ -6,7 +6,7 @@ CREATE TABLE users(
 );
 
 CREATE TABLE sessions( 
-    session VARCHAR(64) NOT NULL,
+    session_id VARCHAR(64) NOT NULL,
     user_id INTEGER NOT NULL,
     PRIMARY KEY (session),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
