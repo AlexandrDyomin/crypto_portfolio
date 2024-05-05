@@ -5,6 +5,13 @@ CREATE TABLE users(
     PRIMARY KEY (id)
 );
 
+CREATE TABLE sessions( 
+    session VARCHAR(64) NOT NULL,
+    user_id INTEGER NOT NULL,
+    PRIMARY KEY (session),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 CREATE TABLE wallets(
     user_id INTEGER,
     ticker VARCHAR(12) NOT NULL,
