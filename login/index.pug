@@ -5,13 +5,9 @@ block scripts
     script(type="module", src="dist/login/index.js" defer)
 
 block content
-    if isLogined
-        h1 Вход
-        main
-            +entrance({ action, loginPlaceholder, passwordPlaceholder, buttonText })      
-        nav.nav 
-            p.nav__text Ещё нет аккаунта? 
-                a.nav__link(href=linkToSignUp) Создать аккаунт
-    else 
-        script(type="module").
-            window.location.pathname = '/';
+    h1 Вход
+    main
+        +entrance({ action, loginPlaceholder, passwordPlaceholder, buttonText })      
+    nav.nav 
+        p.nav__text Ещё нет аккаунта? 
+            a.nav__link(href=linkToSignUp) Создать аккаунт
