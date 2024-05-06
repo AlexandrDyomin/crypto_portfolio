@@ -18,8 +18,22 @@ var routes = {
     postPage404
 };
 
+// handlers
 async function sendIndexPage(req, res) {
     try {
+        var { session_id } = parceString(req.headers.cookie || '', '; ');
+        if (session_id) {
+            var userId = (await makeReqToDb(
+                'SELECT user_id FROM sessions WHERE session_id = $1', 
+                session_id
+            )).rows[0]?.user_id;
+        }
+        
+        if (!session_id || !userId) {
+            redirect(res, '/login');
+            return;
+        }
+
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./index.pug', { cache: true }));
     } catch (err) {
@@ -31,17 +45,19 @@ async function sendLoginPage(req, res) {
     try {
         var { session_id, authError } = parceString(req.headers.cookie || '', '; ');
         if (session_id) {
-            let client = await pool.connect();
-            let result = await client.query('SELECT user_id FROM sessions WHERE session_id = $1', [session_id]);
-            client.release();
-            if (result.rowCount) {
-                redirect(res, '/');
-                return;
-            }
+            var userId = (await makeReqToDb(
+                'SELECT user_id FROM sessions WHERE session_id = $1', 
+                session_id
+            )).rows[0]?.user_id;
+        }
+        
+        if (session_id && userId) {
+            redirect(res, '/');
+            return;
         }
 
         if (authError === 'true') {
-            var warning = 'Ошибочка вышла 😕. Попробуйте еще разок.'
+            var warning = 'Ошибочка вышла. 😕 Попробуйте еще разок.'
         }
 
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
@@ -94,7 +110,7 @@ function postPage404(req, res) {
 function handleError(res, err, codeResponse = 500, headers = { 'Content-Type': 'text/html; charset=utf-8' }) {
     console.log(err);
     res.writeHead(codeResponse, headers);
-    res.end(err.message);
+    res.end('Все накрылось медным тазом! 😱');
 }
 
 function createAccaunt(req, res) {
@@ -106,27 +122,16 @@ function createAccaunt(req, res) {
     var body = []; 
     req.on('data', (chunk) => accumulateChunks(body, chunk));
     req.on('end', async () => {
-        mergeChunks(body);
-        var data = parceString(body[0].toString());
-        var query = prepareQueryToCreateAccount(data.login, data.password);
-        var client = await pool.connect();
-        await client.query(query);
-        client.release();C
-        redirect(res, '/login');
+        try {
+            mergeChunks(body);
+            var data = parceString(body[0].toString());
+            var query = prepareQueryToCreateAccount(data.login, data.password);
+            await makeReqToDb(query);
+            redirect(res, '/login');
+        } catch (e) {
+            handleError(res, err);
+        }
     });
-}
-
-function accumulateChunks(container, chunk) {
-    container.push(chunk);
-}
-
-function mergeChunks(container) {
-    return Buffer.concat(container);
-}
-
-function parceString(qs, sep = '&') {
-    var data = qs.split(sep).map((item) => item.split('='));
-    return Object.fromEntries(data);
 }
 
 function authenticate(req, res) {
@@ -141,31 +146,18 @@ function authenticate(req, res) {
         try {
             mergeChunks(body);
             var { login, password } = parceString(body[0].toString());
-            var client = await pool.connect();
-            var result = await client.query(
-                `SELECT id FROM users WHERE login = $1 AND password = $2`, 
-                [login, password]
-            );
-    
-            var user_id = result.rows[0]?.id;
+            await makeReqToDb(`SELECT id FROM users WHERE login = $1 AND password = $2`, [login, password]);
+            var user_id = (await makeReqToDb(`SELECT id FROM users WHERE login = $1 AND password = $2`, [login, password])).rows[0]?.id;
             if (!user_id) {
-                client.release();
                 res.setHeader('Set-Cookie', 'authError=true; max-age=1');
                 redirect(res, '/login');
                 return;
             } 
             
             var session_id = generateSessionId();
-            await client.query(
-                'INSERT INTO sessions (session_id, user_id) VALUES ($1, $2)', 
-                [session_id, user_id]
-            );
-            client.release();
-
-            redirect(res, '/', {
-                'Set-Cookie': [`session_id=${session_id}; SameSite=Strict; HttpOnly; max-age=604800;`]
-            });
-
+            await makeReqToDb('INSERT INTO sessions (session_id, user_id) VALUES ($1, $2)', [session_id, user_id]);
+            res.setHeader('Set-Cookie', `session_id=${session_id}; SameSite=Strict; HttpOnly; max-age=604800;`)
+            redirect(res, '/');
         } catch (err) {
             handleError(res, err);
         }
@@ -173,9 +165,30 @@ function authenticate(req, res) {
     });
 }
 
-function redirect(res, location, props = {}) {
-    res.writeHead(302, { 'Location': location, ...props });
+// utils
+function accumulateChunks(container, chunk) {
+    container.push(chunk);
+}
+
+function mergeChunks(container) {
+    return Buffer.concat(container);
+}
+
+function parceString(qs, sep = '&') {
+    var data = qs.split(sep).map((item) => item.split('='));
+    return Object.fromEntries(data);
+}
+
+function redirect(res, location) {
+    res.writeHead(302, { 'Location': location });
     res.end();
+}
+
+async function makeReqToDb(query, ...values) {
+    var client = await pool.connect();
+    var result = await client.query(query, values.flat());
+    client.release();
+    return result;
 }
 
 export default routes;
