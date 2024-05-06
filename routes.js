@@ -1,7 +1,6 @@
 import { renderFile } from 'pug';
 import { readFileSync } from 'fs';
 import pool from './pgPool.js';
-import prepareQueryToCreateAccount from './sql_commands/creating_accounts.js';
 import generateSessionId from './generateSessionId.js';
 
 const PROTOCOL = process.env.PROTOCOL;
@@ -21,7 +20,7 @@ var routes = {
 // handlers
 async function sendIndexPage(req, res) {
     try {
-        var { session_id } = parceString(req.headers.cookie || '', '; ');
+        var { session_id } = parseCookie(req.headers.cookie || '');
         if (session_id) {
             var userId = (await makeReqToDb(
                 'SELECT user_id FROM sessions WHERE session_id = $1', 
@@ -43,7 +42,7 @@ async function sendIndexPage(req, res) {
 
 async function sendLoginPage(req, res) {
     try {
-        var { session_id, authError } = parceString(req.headers.cookie || '', '; ');
+        var { session_id, authError } = parseCookie(req.headers.cookie || '');
         if (session_id) {
             var userId = (await makeReqToDb(
                 'SELECT user_id FROM sessions WHERE session_id = $1', 
@@ -77,6 +76,11 @@ async function sendLoginPage(req, res) {
 
 async function sendSignUpPage(req, res) {
     try {
+        var { accountCreationError } = parseCookie(req.headers.cookie || '');
+        if (accountCreationError === 'true') {
+            var warning = 'Выбирите другой логин, пожалуйста! 😕'
+        }
+
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.end(renderFile('./sign_up/index.pug', { 
             cache: true,
@@ -84,7 +88,8 @@ async function sendSignUpPage(req, res) {
             loginPlaceholder: 'Логин',
             passwordPlaceholder: 'Пароль',
             buttonText: 'Создать аккаунт',
-            linkToLogin: `${PROTOCOL}://${HOST}:${PORT}/login`
+            linkToLogin: `${PROTOCOL}://${HOST}:${PORT}/login`,
+            warning
         }));
     } catch (err) {
         handleError(res, err);
@@ -124,11 +129,15 @@ function createAccaunt(req, res) {
     req.on('end', async () => {
         try {
             mergeChunks(body);
-            var data = parceString(body[0].toString());
-            var query = prepareQueryToCreateAccount(data.login, data.password);
-            await makeReqToDb(query);
+            var { login, password } = parseRequestBody(body[0].toString());
+            await makeReqToDb('INSERT INTO users (login, password) VALUES ($1, $2)', [login, password]);
             redirect(res, '/login');
-        } catch (e) {
+        } catch (err) {
+            if (err.code === '23505') {
+                res.setHeader('Set-Cookie', 'accountCreationError=true; max-age=1');
+                redirect(res, '/sign_up');
+                return;
+            }
             handleError(res, err);
         }
     });
@@ -145,7 +154,7 @@ function authenticate(req, res) {
     req.on('end', async () => {
         try {
             mergeChunks(body);
-            var { login, password } = parceString(body[0].toString());
+            var { login, password } = parseRequestBody(body[0].toString());
             await makeReqToDb(`SELECT id FROM users WHERE login = $1 AND password = $2`, [login, password]);
             var user_id = (await makeReqToDb(`SELECT id FROM users WHERE login = $1 AND password = $2`, [login, password])).rows[0]?.id;
             if (!user_id) {
@@ -174,10 +183,22 @@ function mergeChunks(container) {
     return Buffer.concat(container);
 }
 
-function parceString(qs, sep = '&') {
-    var data = qs.split(sep).map((item) => item.split('='));
-    return Object.fromEntries(data);
+function makeParserFor(strType) {
+    var separators = {
+        cookie: '; ',
+        requestBody: '&'
+    };
+    var sep = separators[strType];
+    if (!sep) throw Error(`Для типа строки ${strType} невозможно создать парсер`);
+
+    return (str) => {
+        var data = str.split(sep).map((item) => item.split('='));
+        return Object.fromEntries(data);
+    };
 }
+
+var parseCookie = makeParserFor('cookie');
+var parseRequestBody = makeParserFor('requestBody');
 
 function redirect(res, location) {
     res.writeHead(302, { 'Location': location });
