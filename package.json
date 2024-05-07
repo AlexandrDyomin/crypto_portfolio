@@ -8,13 +8,14 @@
   "scripts": {
     "start": "node --env-file .env index.js",
     "dev" : "parcel build && nodemon --env-file .env index.js",
-    "build": "parcel build"
+    "build": "parcel build --no-source-maps"
   },
-  "source": [
-    "login/index.js",
-    "sign_up/index.js",
-    "layout/layout.css"
-  ],
+  "targets": {
+    "layout": {
+      "source": ["layouts/form/script.js", "layouts/form/style.css"],
+      "distDir": "dist/layouts/form"
+    }
+  },
   "dependencies": {
     "pg": "^8.11.5",
     "pug": "^3.0.2"

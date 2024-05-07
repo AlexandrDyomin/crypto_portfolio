@@ -4,13 +4,12 @@ html(lang="ru")
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title #{title}
-        block scripts
         block styles
-            link(rel="stylesheet", href="dist/layout/layout.css")
+            link(rel="stylesheet", href="dist/layouts/form/style.css")
+        block scripts
+            script(type="module", src="dist/layouts/form/script.js" defer) 
     body 
         .page 
             .container
-                block content
-            .footer 
-                .container
-                    block footer
+                .container__inner
+                    block content

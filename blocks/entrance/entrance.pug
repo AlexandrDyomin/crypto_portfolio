@@ -2,7 +2,7 @@ mixin entrance({ action, placeholderLogin, placeholderPassword, buttonText })
     form.entrance(action=action method="post") 
         .warning #{warning}
         .entrance__container
-            input.c-input(type="text" placeholder=placeholderLogin name="login" minlength="4" maxlength="20")
-            input.c-input(type="password" placeholder=placeholderPassword name="password" minlength="4" maxlength="20")
+            input.c-input(type="text" placeholder=loginPlaceholder name="login" minlength="4" maxlength="20")
+            input.c-input(type="password" placeholder=passwordPlaceholder name="password" minlength="4" maxlength="20")
             button.c-button(type="submit" disabled) #{buttonText}
 

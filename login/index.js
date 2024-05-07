@@ -1,1 +1,0 @@
-import '../blocks/entrance/entrance.js';

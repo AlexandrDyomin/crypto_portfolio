@@ -61,7 +61,8 @@ async function sendLoginPage(req, res) {
             passwordPlaceholder: 'Пароль',
             buttonText: 'Войти',
             linkToSignUp: `${PROTOCOL}://${HOST}:${PORT}/sign_up`,
-            warning
+            warning,
+            title: 'Вход'
         }));
     } catch (err) {
         handleError(res, err);
@@ -92,7 +93,8 @@ async function sendSignUpPage(req, res) {
             passwordPlaceholder: 'Пароль',
             buttonText: 'Создать аккаунт',
             linkToLogin: `${PROTOCOL}://${HOST}:${PORT}/login`,
-            warning
+            warning,
+            title: 'Создание аккаунта'
         }));
     } catch (err) {
         handleError(res, err);
