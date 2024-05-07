@@ -1,7 +1,7 @@
 CREATE TABLE users( 
     id serial,
     login VARCHAR(20) NOT NULL UNIQUE,
-    password VARCHAR(20) NOT NULL,
+    password VARCHAR(81) NOT NULL,
     PRIMARY KEY (id)
 );
 

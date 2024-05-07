@@ -1,7 +1,7 @@
 import { renderFile } from 'pug';
 import { readFileSync } from 'fs';
 import pool from './pgPool.js';
-import generateSessionId from './generateSessionId.js';
+import { generateRandomHexString as generateSessionId, hash, verify } from './cryptography.js';
 
 const PROTOCOL = process.env.PROTOCOL;
 const HOST = process.env.HOST;
@@ -130,7 +130,7 @@ function createAccaunt(req, res) {
         try {
             mergeChunks(body);
             var { login, password } = parseRequestBody(body[0].toString());
-            await makeReqToDb('INSERT INTO users (login, password) VALUES ($1, $2)', [login, password]);
+            await makeReqToDb('INSERT INTO users (login, password) VALUES ($1, $2)', [login, await hash(password)]);
             redirect(res, '/login');
         } catch (err) {
             if (err.code === '23505') {
@@ -155,9 +155,17 @@ function authenticate(req, res) {
         try {
             mergeChunks(body);
             var { login, password } = parseRequestBody(body[0].toString());
-            await makeReqToDb(`SELECT id FROM users WHERE login = $1 AND password = $2`, [login, password]);
-            var user_id = (await makeReqToDb(`SELECT id FROM users WHERE login = $1 AND password = $2`, [login, password])).rows[0]?.id;
-            if (!user_id) {
+            var result = (await makeReqToDb(
+                `SELECT id, password FROM users WHERE login = $1`, 
+                login
+            ));
+
+            if (result) {
+                var { id: user_id, password: passHash } = result.rows[0];
+                var isCorrectPass = await verify(password, passHash);
+            }
+
+            if (!user_id || !isCorrectPass) {
                 res.setHeader('Set-Cookie', 'authError=true; max-age=1');
                 redirect(res, '/login');
                 return;
@@ -170,7 +178,6 @@ function authenticate(req, res) {
         } catch (err) {
             handleError(res, err);
         }
-
     });
 }
 
