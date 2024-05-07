@@ -22,13 +22,10 @@ async function sendIndexPage(req, res) {
     try {
         var { session_id } = parseCookie(req.headers.cookie || '');
         if (session_id) {
-            var userId = (await makeReqToDb(
-                'SELECT user_id FROM sessions WHERE session_id = $1', 
-                session_id
-            )).rows[0]?.user_id;
+            var isSessionAvailability = checkSessionAvailability(session_id);
         }
         
-        if (!session_id || !userId) {
+        if (!session_id || !isSessionAvailability) {
             redirect(res, '/login');
             return;
         }
