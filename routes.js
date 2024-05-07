@@ -44,13 +44,10 @@ async function sendLoginPage(req, res) {
     try {
         var { session_id, authError } = parseCookie(req.headers.cookie || '');
         if (session_id) {
-            var userId = (await makeReqToDb(
-                'SELECT user_id FROM sessions WHERE session_id = $1', 
-                session_id
-            )).rows[0]?.user_id;
+            var isSessionAvailability = checkSessionAvailability(session_id);
         }
         
-        if (session_id && userId) {
+        if (session_id && isSessionAvailability) {
             redirect(res, '/');
             return;
         }
@@ -76,7 +73,16 @@ async function sendLoginPage(req, res) {
 
 async function sendSignUpPage(req, res) {
     try {
-        var { accountCreationError } = parseCookie(req.headers.cookie || '');
+        var { session_id, accountCreationError } = parseCookie(req.headers.cookie || '');
+        if (session_id) {
+            var isSessionAvailability = checkSessionAvailability(session_id);
+        }
+
+        if (session_id && isSessionAvailability) {
+            redirect(res, '/');
+            return;
+        }
+        
         if (accountCreationError === 'true') {
             var warning = 'Выбирите другой логин, пожалуйста! 😕'
         }
@@ -217,6 +223,15 @@ async function makeReqToDb(query, ...values) {
     var result = await client.query(query, values.flat());
     client.release();
     return result;
+}
+
+async function checkSessionAvailability(session_id) {
+    var userId = (await makeReqToDb(
+        'SELECT user_id FROM sessions WHERE session_id = $1', 
+        session_id
+    )).rows[0]?.user_id;
+
+    return userId ? true : false;
 }
 
 export default routes;
