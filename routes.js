@@ -165,12 +165,13 @@ function authenticate(req, res) {
                 login
             ));
 
-            if (result) {
+            if (result.rowCount) {
                 var { id: user_id, password: passHash } = result.rows[0];
                 var isCorrectPass = await verify(password, passHash);
             }
 
             if (!user_id || !isCorrectPass) {
+                console.log(2222)
                 res.setHeader('Set-Cookie', 'authError=true; max-age=1');
                 redirect(res, '/login');
                 return;
