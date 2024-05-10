@@ -1,10 +1,11 @@
 extends ../layouts/form/form.pug
 include ../blocks/entrance/entrance.pug
 
+block append styles 
+    link(rel="stylesheet", href="dist/login/style.css")
+
 block content
-    h1 Вход
-    main
-        +entrance({ action, loginPlaceholder, passwordPlaceholder, buttonText })      
+    +entrance({ action, loginPlaceholder, passwordPlaceholder, buttonText })      
     nav.nav 
         p.nav__text Ещё нет аккаунта? 
                 a.nav__link(href=linkToSignUp) Создать аккаунт

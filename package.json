@@ -11,9 +11,25 @@
     "build": "parcel build --no-source-maps"
   },
   "targets": {
-    "layout": {
+    "form": {
       "source": ["layouts/form/script.js", "layouts/form/style.css"],
       "distDir": "dist/layouts/form"
+    },
+    "content": {
+      "source": ["layouts/content/style.css", "layouts/content/script.js"],
+      "distDir": "dist/layouts/content"
+    },
+    "index": {
+      "source": ["style.css"],
+      "distDir": "dist"
+    },
+    "login": {
+      "source": ["login/style.css"],
+      "distDir": "dist/login"
+    },
+    "sign_up": {
+      "source": ["sign_up/style.css"],
+      "distDir": "dist/sign_up"
     }
   },
   "dependencies": {

@@ -30,8 +30,20 @@ async function sendIndexPage(req, res) {
             return;
         }
 
+        var thead = ['Пара', 'Дата', 'Тип транзакции', 'Количество', 'Цена', 'Сумма', ''];
+        var rows = [{
+            id: "1",
+            data: ['BTC/USDT', '22.11.2023', 'Покупка', '0.211', '34567.93', '7293,83']
+        }];
+        
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(renderFile('./index.pug', { cache: true }));
+        res.end(renderFile('./index.pug', { 
+            cache: true,
+            title: 'Транзакции',
+            h1: 'Транзакции',
+            thead,
+            rows 
+        }));
     } catch (err) {
         handleError(res, err);
     }
@@ -62,7 +74,8 @@ async function sendLoginPage(req, res) {
             buttonText: 'Войти',
             linkToSignUp: `${PROTOCOL}://${HOST}:${PORT}/sign_up`,
             warning,
-            title: 'Вход'
+            title: 'Вход',
+            h1: 'Вход'
         }));
     } catch (err) {
         handleError(res, err);
@@ -94,7 +107,8 @@ async function sendSignUpPage(req, res) {
             buttonText: 'Создать аккаунт',
             linkToLogin: `${PROTOCOL}://${HOST}:${PORT}/login`,
             warning,
-            title: 'Создание аккаунта'
+            title: 'Создание аккаунта',
+            h1: 'Создайте свой аккаунт'
         }));
     } catch (err) {
         handleError(res, err);

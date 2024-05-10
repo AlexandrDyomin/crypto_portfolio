@@ -1,1 +1,26 @@
-h1 hello
+extends layouts/content/content.pug
+
+block append styles 
+    link(rel="stylesheet", href="dist/style.css")
+
+block content 
+    .table-container-outer 
+        .table-container
+            table.info 
+                thead 
+                    tr.headers
+                        - var lastIndex = thead.length -1
+                        each head, i in thead
+                            th(colspan=(i === lastIndex) ? "3" : "") #{head}
+                tbody 
+                    each row in rows
+                        tr.data-row(data-id=row.id) 
+                            each value in row.data
+                                td #{value}
+                            td 
+                                button.edit Редактировать
+                            td 
+                                button.delete Удалить
+                            td 
+                                button.update(disabled) Обновить
+        .table__gradient_disbled

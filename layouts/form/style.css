@@ -1,12 +1,12 @@
-@import './reset.css';
+@import '../reset.css';
 @import '../../blocks/entrance/entrance.css';
 @import '../../blocks/c-button.css';
 @import '../../blocks/c-input.css';
 
-
 html {
     font-size: 10px;
-    font-family:Arial, Helvetica, sans-serif
+    font-family:Arial, Helvetica, sans-serif;
+    color: #2D3E40;
 }
 
 h1 {
