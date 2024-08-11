@@ -13,6 +13,10 @@ var routes = {
     '/sign_up': sendSignUpPage,
     '/create_accaunt': createAccaunt,
     '/auth': authenticate,
+    '/transactions': sendTransactionsPage,
+    '/p2p': 'sendP2pPage',
+    '/realizedPnL': 'sendRealizedPnL',
+    '/unrealizedPnL': 'sendUnrealizedPnL',
     sendResource,
     postPage404
 };
@@ -22,41 +26,69 @@ async function sendIndexPage(req, res) {
     try {
         var { session_id } = parseCookie(req.headers.cookie || '');
         if (session_id) {
-            var isSessionAvailability = checkSessionAvailability(session_id);
+            var userId = await getUserId(session_id);
         }
         
-        if (!session_id || !isSessionAvailability) {
+        if (!session_id || !userId) {
             redirect(res, '/login');
             return;
         }
 
-        var thead = ['Пара', 'Дата', 'Тип транзакции', 'Количество', 'Цена', 'Сумма', ''];
-        var rows = [{
-            id: "1",
-            data: ['BTC/USDT', '22.11.2023', 'Покупка', '0.211', '34567.93', '7293,83']
-        }];
-        
+        var thead = ['Тикер', 'Количество', ''];
+
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./index.pug', { 
             cache: true,
-            title: 'Транзакции',
-            h1: 'Транзакции',
+            title: 'Кошелёк',
+            h1: 'Кошелёк',
             thead,
-            rows 
+            rows: [{ ticker: 'btc', amount: 12 }]
         }));
     } catch (err) {
         handleError(res, err);
     }
 }
 
+async function sendTransactionsPage(req, res) {
+    try {
+        var { session_id } = parseCookie(req.headers.cookie || '');
+        if (session_id) {
+            var userId = await getUserId(session_id);
+        }
+        
+        if (!session_id || !userId) {
+            redirect(res, '/login');
+            return;
+        }
+        var thead = ['Пара', 'Дата', 'Тип транзакции', 'Количество', 'Цена', 'Сумма', ''];
+        var rows = await getRows(userId);
+
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(renderFile('./transactions.pug', { 
+            cache: true,
+            title: 'Транзакции',
+            h1: 'Транзакции',
+            thead,
+            rows
+        }));
+    } catch (err) {
+        handleError(res, err);
+    }
+    
+}
+async function getRows(id) {
+    var result = await makeReqToDb('SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum FROM transactions WHERE user_id = $1', [id]);
+    return result.rows;
+}
+
 async function sendLoginPage(req, res) {
     try {
         var { session_id, authError } = parseCookie(req.headers.cookie || '');
         if (session_id) {
-            var isSessionAvailability = checkSessionAvailability(session_id);
+            var userId = await getUserId(session_id);
         }
         
-        if (session_id && isSessionAvailability) {
+        if (session_id && userId) {
             redirect(res, '/');
             return;
         }
@@ -86,10 +118,10 @@ async function sendSignUpPage(req, res) {
     try {
         var { session_id, accountCreationError } = parseCookie(req.headers.cookie || '');
         if (session_id) {
-            var isSessionAvailability = checkSessionAvailability(session_id);
+            var userId = await getUserId(session_id);
         }
 
-        if (session_id && isSessionAvailability) {
+        if (session_id && userId) {
             redirect(res, '/');
             return;
         }
@@ -239,13 +271,13 @@ async function makeReqToDb(query, ...values) {
     return result;
 }
 
-async function checkSessionAvailability(session_id) {
+async function getUserId(session_id) {
     var userId = (await makeReqToDb(
         'SELECT user_id FROM sessions WHERE session_id = $1', 
         session_id
     )).rows[0]?.user_id;
 
-    return userId ? true : false;
+    return userId;
 }
 
 export default routes;

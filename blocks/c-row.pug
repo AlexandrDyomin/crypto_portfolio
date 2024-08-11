@@ -1,0 +1,6 @@
+mixin c-row(row)
+    tr.data-row(data-id=row.id) 
+        - delete row.id
+        - for (var key of Object.keys(row))
+            td #{row[key]}
+        block
