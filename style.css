@@ -32,8 +32,20 @@ table {
     margin: 0 auto;
 }
 
-.headers {
+thead .headers:last-child {
     border-bottom: 2px solid white;
+}
+
+thead .headers:first-child th:last-child {
+    border-bottom: 1px solid white;
+}
+
+thead:first-child th:not(:last-child) {
+    vertical-align: middle;
+}
+
+thead:first-child th:last-child {
+    text-align: center;
 }
 
 th {

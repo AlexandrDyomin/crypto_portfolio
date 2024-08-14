@@ -9,17 +9,21 @@ block content
         .table-container
             table.info 
                 thead 
+                    - var thead = ['Пара', 'Количество', 'Средняя цена покупки', 'Сумма', 'Текущая цена', 'Изменение цены'];
+                    - var subHeads = ['1d', '1w', '1M', '1Y', 'с момента покупки']
                     tr.headers
-                        - var lastIndex = thead.length -1
+                        - var lastIndex = thead.length - 1
                         each head, i in thead
-                            th(colspan=(i === lastIndex) ? "3" : "") #{head}
+                            if i < lastIndex
+                                th(rowspan="2") #{head}
+                            else 
+                                th(colspan="5")  #{head}
+                    tr.headers
+                        each subHead in subHeads
+                            th #{subHead}
+
+                    
                 tbody 
                     each row in rows
                         +c-row(row)
-                            td 
-                                button.edit Редактировать
-                            td 
-                                button.delete Удалить
-                            td 
-                                button.update(disabled) Обновить
         .table__gradient_disbled

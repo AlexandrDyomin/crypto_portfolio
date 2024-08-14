@@ -34,7 +34,7 @@ async function sendIndexPage(req, res) {
             return;
         }
 
-        var thead = ['Тикер', 'Количество', ''];
+        var thead = ['Пара', 'Количество', 'Средняя цена покупки', 'Сумма', 'Текущая цена', 'Изменение цены'];
 
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./index.pug', { 
@@ -49,6 +49,8 @@ async function sendIndexPage(req, res) {
     }
 }
 
+
+
 async function sendTransactionsPage(req, res) {
     try {
         var { session_id } = parseCookie(req.headers.cookie || '');
@@ -62,6 +64,7 @@ async function sendTransactionsPage(req, res) {
         }
         var thead = ['Пара', 'Дата', 'Тип транзакции', 'Количество', 'Цена', 'Сумма', ''];
         var rows = await getRows(userId);
+        formatData(rows);
 
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./transactions.pug', { 
@@ -75,10 +78,21 @@ async function sendTransactionsPage(req, res) {
         handleError(res, err);
     }
     
+    async function getRows(id) {
+        var result = await makeReqToDb('SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum FROM transactions WHERE user_id = $1', [id]);
+        return result.rows;
+    }
 }
-async function getRows(id) {
-    var result = await makeReqToDb('SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum FROM transactions WHERE user_id = $1', [id]);
-    return result.rows;
+
+
+function formatData(rows) {
+    var formatterDates = new Intl.DateTimeFormat('ru');
+    rows.forEach((row) => {
+        row.date = formatterDates.format(row.date);
+        ['amount', 'price', 'sum'].forEach((prop) => {
+            row[prop] = parseFloat(row[prop]).toString();
+        })
+    });
 }
 
 async function sendLoginPage(req, res) {
