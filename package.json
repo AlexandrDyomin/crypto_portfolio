@@ -20,8 +20,16 @@
       "distDir": "dist/layouts/content"
     },
     "index": {
-      "source": ["style.css"],
+      "source": [],
       "distDir": "dist"
+    },
+    "transactions": {
+      "source": ["transactions/style.css", "transactions/script.js"],
+      "distDir": "dist/transactions"
+    },
+    "add_transaction": {
+      "source": ["add_transaction/style.css", "add_transaction/script.js"],
+      "distDir": "dist/add_transaction"
     },
     "login": {
       "source": ["login/style.css"],

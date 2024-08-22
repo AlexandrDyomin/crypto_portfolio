@@ -1,0 +1,29 @@
+extends ../layouts/content/content.pug
+
+block append styles 
+    link(rel="stylesheet", href="dist/transactions/style.css")
+block append scripts
+    script(type="module", src="dist/transactions/script.js" defer) 
+block parts 
+    include ../blocks/c-row.pug
+block content 
+    .table-container-outer 
+        .table-container
+            table.info 
+                thead
+                    - var thead = ['Пара', 'Дата', 'Тип транзакции', 'Количество', 'Цена', 'Сумма'];
+                    tr.headers
+                        each head, i in thead
+                            th #{head}
+                tbody 
+                    each row in rows
+                        +c-row(row)
+        .table__gradient_disbled
+        
+    - var PROTOCOL = process.env.PROTOCOL
+    - var HOST = process.env.HOST 
+    - var PORT = process.env.PORT
+    a.add-transaction(href=`${PROTOCOL}://${HOST}:${PORT}/add_transaction`) Добавить транзакцию
+
+
+        

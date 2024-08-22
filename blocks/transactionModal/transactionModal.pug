@@ -1,0 +1,18 @@
+mixin transactionModal(values = {})
+    - var PROTOCOL = process.env.PROTOCOL
+    - var HOST = process.env.HOST 
+    - var PORT = process.env.PORT
+    form.transaction-modal(action="/save" method="GET")
+        - var labels = { 'crypto-pair': 'Пара', date: 'Дата', amount: 'Количество', price: 'Цена' }
+        each val, prop in labels
+            label(for=prop) #{val}
+            input(id=prop type="text" name=prop value=values[prop] ? values[prop] : "")
+
+        .transaction-type
+            - labels = { buy: 'Покупка', sell: 'Продажа', transh: 'Перевод' }
+            each val, prop in labels
+                input(id=prop type="radio" name="type" value=labels[prop] checked=(values.type === prop) ? true : false)
+                label(for=prop) #{val}
+        .buttons 
+            button.save(type="submit") Сохранить
+            button.cancel(type="button") Отмена

@@ -40,3 +40,71 @@ h1 {
     text-align: center;
     font-weight: 600;
 }
+
+/* Таблица */
+.table-container-outer {
+    position: relative;
+}
+
+.table-container {
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.table::-webkit-scrollbar {
+    display: none;
+}
+
+.table__gradient {
+    position: absolute;
+    height: 100%;
+    width: 1.5rem;
+    right: 0;
+    top: 0;
+    background: linear-gradient(90deg,rgba(255, 167, 0, 0.25), rgba(153, 100, 0, 0.25));
+}
+
+.table__gradient_disabled {
+    display: none;
+}
+
+table {
+    table-layout: fixed;
+    width: max-content;
+    border-collapse: collapse;
+    margin: 0 auto;
+}
+
+thead .headers:last-child {
+    border-bottom: 2px solid white;
+}
+
+thead .headers:first-child th:last-child {
+    border-bottom: 1px solid white;
+}
+
+thead:first-child th:not(:last-child) {
+    vertical-align: middle;
+}
+
+thead:first-child th:last-child {
+    text-align: center;
+}
+
+th {
+    font-weight: 500;
+}
+
+td {
+    font-weight: 400;
+}
+
+th, td {
+    padding: 0.7rem;
+    text-align: start;
+}
+
+tbody tr {
+    border-bottom: 1px solid white;
+}

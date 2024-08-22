@@ -8,12 +8,78 @@ const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 
 var routes = {
-    '/': sendIndexPage,
+    '/': decorate(function sendIndexPage(req, res) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(renderFile('./index.pug', { 
+            cache: true,
+            title: 'Кошелёк',
+            h1: 'Кошелёк',
+            rows: [{ ticker: 'btc', amount: 12 }]
+        }));
+    }),
     '/login': sendLoginPage,
     '/sign_up': sendSignUpPage,
     '/create_accaunt': createAccaunt,
     '/auth': authenticate,
-    '/transactions': sendTransactionsPage,
+    '/transactions': decorate(async function sendTransactionsPage(req, res) {
+        var rows = await getRows(this.userId);
+        formatData(rows);
+
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(renderFile('./transactions/index.pug', { 
+            cache: true,
+            title: 'Транзакции',
+            h1: 'Транзакции',
+            rows
+        }));
+
+        async function getRows(userId) {
+            var result = await makeReqToDb('SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum FROM transactions WHERE user_id = $1', [userId]);
+            return result.rows;
+        }
+    }),
+    '/add_transaction': decorate(function addTransaction(req, res) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(renderFile('./add_transaction/index.pug', { 
+            cache: true,
+            title: 'Добавить транзакцию',
+            h1: 'Добавить транзакцию',
+        }));
+    }),
+    '/save': decorate(async function save(req, res) {
+        var url = new URL(req.url, `http://${HOST}:${PORT}`)
+        
+        var data = getData(url);
+        data.userId = this.userId;
+        data.date = new Date(data.date).toISOString().match(/\d{4}-\d{2}-\d{2}/)[0];
+        data.amount = parseFloat(data.amount);
+        data.price = parseFloat(data.price);
+        
+        await insert(data);
+        
+        redirect(res, '/transactions');
+
+        function getData(url) {
+            var keys = [...url.searchParams.keys()];
+            return keys.reduce((acc, key) => {
+                acc[key] = url.searchParams.get(key);
+                return acc;
+            }, {});
+        }
+    
+        function formatData(data) {
+    
+        }
+    
+        async function insert(data) {
+            var { userId, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
+            var result = await makeReqToDb(
+                'INSERT INTO transactions(user_id, crypto_pair, date, transaction_type, amount, price) VALUES($1, $2, $3, $4, $5, $6)', 
+                [userId, cryptoPair, date, type, amount, price]
+            );
+            return result.rowCount;
+        }
+    }),
     '/p2p': 'sendP2pPage',
     '/realizedPnL': 'sendRealizedPnL',
     '/unrealizedPnL': 'sendUnrealizedPnL',
@@ -21,69 +87,25 @@ var routes = {
     postPage404
 };
 
-// handlers
-async function sendIndexPage(req, res) {
-    try {
-        var { session_id } = parseCookie(req.headers.cookie || '');
-        if (session_id) {
-            var userId = await getUserId(session_id);
-        }
-        
-        if (!session_id || !userId) {
-            redirect(res, '/login');
-            return;
-        }
+function decorate(fn) {
+    return async (req, res) => {
+        try {
+            var { session_id } = parseCookie(req.headers.cookie || '');
+            if (session_id) {
+                var userId = await getUserId(session_id);
+            }
+            
+            if (!session_id || !userId) {
+                redirect(res, '/login');
+                return;
+            }
 
-        var thead = ['Пара', 'Количество', 'Средняя цена покупки', 'Сумма', 'Текущая цена', 'Изменение цены'];
-
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(renderFile('./index.pug', { 
-            cache: true,
-            title: 'Кошелёк',
-            h1: 'Кошелёк',
-            thead,
-            rows: [{ ticker: 'btc', amount: 12 }]
-        }));
-    } catch (err) {
-        handleError(res, err);
+            fn.call({ session_id, userId }, req, res)
+        } catch (error) {
+            handleError(res, err);
+        }
     }
 }
-
-
-
-async function sendTransactionsPage(req, res) {
-    try {
-        var { session_id } = parseCookie(req.headers.cookie || '');
-        if (session_id) {
-            var userId = await getUserId(session_id);
-        }
-        
-        if (!session_id || !userId) {
-            redirect(res, '/login');
-            return;
-        }
-        var thead = ['Пара', 'Дата', 'Тип транзакции', 'Количество', 'Цена', 'Сумма', ''];
-        var rows = await getRows(userId);
-        formatData(rows);
-
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(renderFile('./transactions.pug', { 
-            cache: true,
-            title: 'Транзакции',
-            h1: 'Транзакции',
-            thead,
-            rows
-        }));
-    } catch (err) {
-        handleError(res, err);
-    }
-    
-    async function getRows(id) {
-        var result = await makeReqToDb('SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum FROM transactions WHERE user_id = $1', [id]);
-        return result.rows;
-    }
-}
-
 
 function formatData(rows) {
     var formatterDates = new Intl.DateTimeFormat('ru');
@@ -231,7 +253,6 @@ function authenticate(req, res) {
             }
 
             if (!user_id || !isCorrectPass) {
-                console.log(2222)
                 res.setHeader('Set-Cookie', 'authError=true; max-age=1');
                 redirect(res, '/login');
                 return;

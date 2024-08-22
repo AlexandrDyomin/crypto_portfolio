@@ -12,8 +12,9 @@ html(lang="ru")
     body 
         .page 
             .container
-            header 
-                h1 #{title}
-                button.user user
-            main
-                block content
+                header 
+                    block header
+                        h1 #{title}
+                        button.user user
+                main
+                    block content

@@ -1,0 +1,21 @@
+h2 {
+    text-align: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-bottom: 1rem;
+}
+
+input[type="text"] {
+    margin-bottom: 2rem;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-around;
+}

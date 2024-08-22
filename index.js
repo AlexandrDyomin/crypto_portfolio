@@ -22,7 +22,7 @@ async function handleRequest(req, res) {
         return;
     }
     
-    var pathname = req.url.match(/\/.*/)[0];
+    var pathname = new URL(req.url, `http://${HOST}:${PORT}`).pathname
     routes[pathname] ? routes[pathname](req, res) : routes.postPage404(req, res);
 }
 
