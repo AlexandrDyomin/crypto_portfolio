@@ -8,7 +8,7 @@ const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 
 var routes = {
-    '/': decorate(function sendIndexPage(req, res) {
+    '/': decorate(async function sendIndexPage(req, res) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./index.pug', { 
             cache: true,
@@ -17,7 +17,7 @@ var routes = {
             rows: [{ ticker: 'btc', amount: 12 }]
         }));
     }),
-    '/login': decorate(function sendLoginPage(req, res){
+    '/login': decorate(async function sendLoginPage(req, res){
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.end(renderFile('./login/index.pug', { 
             cache: true,
@@ -31,7 +31,7 @@ var routes = {
             h1: 'Вход'
         }));
     }),
-    '/sign_up': decorate(function sendSignUpPage(req,res) {
+    '/sign_up': decorate(async function sendSignUpPage(req,res) {
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
         res.end(renderFile('./sign_up/index.pug', { 
             cache: true,
@@ -62,12 +62,25 @@ var routes = {
             return result.rows;
         }
     }),
-    '/add_transaction': decorate(function addTransaction(req, res) {
+    '/transaction_form': decorate(function sendTransactioForm(req, res) {
+        var url = new URL(req.url, `http://${HOST}:${PORT}`);
+        if (url.search) {
+            var values = parseSearchParm(url);
+            var title = 'Изменить тарнзакцию';
+            var pathname = '/edit_transaction'
+        } else {
+            values = {};
+            title = 'Добавить тарнзакцию';
+            pathname = '/add_transaction'
+        }
+        var h1 = title;
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(renderFile('./add_transaction/index.pug', { 
+        res.end(renderFile('./transaction_form/index.pug', { 
             cache: true,
-            title: 'Добавить транзакцию',
-            h1: 'Добавить транзакцию',
+            title,
+            h1,
+            values,
+            pathname
         }));
     }),
     '/p2p': 'sendP2pPage',
@@ -77,27 +90,15 @@ var routes = {
     sendResource,
     '/create_accaunt': createAccaunt,
     '/auth': authenticate,
-    '/save': decorate(async function save(req, res) {
+    '/add_transaction': decorate(async function save(req, res) {
         var url = new URL(req.url, `http://${HOST}:${PORT}`);
-        var data = {userId: this.userId, ...getData(url)};
+        var data = {userId: this.userId, ...parseSearchParm(url)};
         formatDataForDB(data);
-        let rowCount = await insert(data);
-        rowCount ? redirect(res, '/transactions') : redirect(res, '/add_transaction');
+        var rowCount = await insert(data);
+        rowCount ? 
+            redirect(res, '/transactions') : 
+            sendErrorPage(res, new Error('Не удалось сохранить данные'));
 
-        function getData(url) {
-            var keys = [...url.searchParams.keys()];
-            return keys.reduce((acc, key) => {
-                acc[key] = url.searchParams.get(key);
-                return acc;
-            }, {});
-        }
-    
-        function formatDataForDB(data) {
-            data.date = new Date(data.date).toISOString().match(/\d{4}-\d{2}-\d{2}/)[0];
-            data.amount = parseFloat(data.amount);
-            data.price = parseFloat(data.price);
-        }
-    
         async function insert(data) {
             var { userId, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
             var result = await makeReqToDb(
@@ -105,17 +106,38 @@ var routes = {
                 [userId, cryptoPair, date, type, amount, price]
             );
             return result.rowCount;
-        }
+        }  
     }),
-    '/remove': decorate(async function remove(req, res) {
+    '/remove_transaction': decorate(async function remove(req, res) {
         var id = new URL(req.url, `http://${HOST}:${PORT}`)
             .searchParams.get('id');
-        var rowCount = del(id);
-        
-        rowCount ? redirect(res, '/transactions') : redirect(res, '/transactions', {'Set-Cookie': 'delError=true; max-age=1'})
+        var rowCount = await del(id);
+        rowCount ? 
+            redirect(res, '/transactions') : 
+            sendErrorPage(res, new Error('Не удалось сохранить данные'));
 
         async function del(id) {
             var result = await makeReqToDb('DELETE FROM transactions WHERE id=$1', [id]);
+            return result.rowCount;
+        }
+    }),
+    '/edit_transaction': decorate(async function edit(req, res) {
+        var url = new URL(req.url, `http://${HOST}:${PORT}`);
+        var data = parseSearchParm(url);
+        formatDataForDB(data);
+        var rowCount = await update(data);
+        rowCount ? 
+            redirect(res, '/transactions') : 
+            sendErrorPage(res, new Error('Не удалось сохранить данные'));
+        
+        async function update(data) {
+            var { id, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
+            var result = await makeReqToDb(
+                `UPDATE transactions 
+                SET crypto_pair = $1, date = $2, transaction_type = $3, amount = $4, price = $5
+                WHERE id = $6`, 
+                [cryptoPair, date, type, amount, price, id]
+            );
             return result.rowCount;
         }
     })
@@ -144,25 +166,15 @@ function decorate(fn) {
                     var warning = 'Ошибочка вышла. 😕 Попробуйте еще разок.'
                 }
             } else if (!session_id || !userId) {
-                redirect(res, '/login', {ddd:1});
+                redirect(res, '/login');
                 return;
             }
 
-            fn.call({ session_id, userId, warning }, req, res)
+            await fn.call({ session_id, userId, warning }, req, res)
         } catch (error) {
-            handleError(res, err);
+            sendErrorPage(res, error);
         }
     }
-}
-
-function formatDataForView(rows) {
-    var formatterDates = new Intl.DateTimeFormat('ru');
-    rows.forEach((row) => {
-        row.date = formatterDates.format(row.date);
-        ['amount', 'price', 'sum'].forEach((prop) => {
-            row[prop] = parseFloat(row[prop]).toString();
-        })
-    });
 }
 
 function sendResource(req, res, { contentType, cacheControl = 'public, max-age=604800' }) {
@@ -172,7 +184,7 @@ function sendResource(req, res, { contentType, cacheControl = 'public, max-age=6
         res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': cacheControl});
         res.end(resource);
     } catch(err) {
-        handleError(res, err);
+        sendErrorPage(res, err);
     }
 }
 
@@ -181,7 +193,7 @@ function postPage404(req, res) {
     res.end('Page not found');
 }
 
-function handleError(res, err, codeResponse = 500, headers = { 'Content-Type': 'text/html; charset=utf-8' }) {
+function sendErrorPage(res, err, codeResponse = 500, headers = { 'Content-Type': 'text/html; charset=utf-8' }) {
     console.log(err);
     res.writeHead(codeResponse, headers);
     res.end('Все накрылось медным тазом! 😱');
@@ -207,7 +219,7 @@ function createAccaunt(req, res) {
                 redirect(res, '/sign_up');
                 return;
             }
-            handleError(res, err);
+            sendErrorPage(res, err);
         }
     });
 }
@@ -245,7 +257,7 @@ function authenticate(req, res) {
             res.setHeader('Set-Cookie', `session_id=${session_id}; SameSite=Strict; HttpOnly; max-age=604800;`)
             redirect(res, '/');
         } catch (err) {
-            handleError(res, err);
+            sendErrorPage(res, err);
         }
     });
 }
@@ -276,14 +288,8 @@ function makeParserFor(strType) {
 var parseCookie = makeParserFor('cookie');
 var parseRequestBody = makeParserFor('requestBody');
 
-function redirect(res, location, headers) {
-    res.writeHead(302, { 'Location': location });
-    if (headers) {
-        for (var { key, value } of Object.entries(headers)) {
-            console.log(key, value)
-            res.setHeader(key, value);
-        }
-    }
+function redirect(res, location, headers = {}) {
+    res.writeHead(302, { 'Location': location, ...headers });
     res.end();
 }
 
@@ -301,6 +307,31 @@ async function getUserId(session_id) {
     )).rows[0]?.user_id;
 
     return userId;
+}
+
+function formatDataForView(rows) {
+    var formatterDates = new Intl.DateTimeFormat('ru');
+    rows.forEach((row) => {
+        row.date = formatterDates.format(row.date);
+        ['amount', 'price', 'sum'].forEach((prop) => {
+            row[prop] = parseFloat(row[prop]).toString();
+        })
+    });
+}
+
+function parseSearchParm(url) {
+    var keys = [...url.searchParams.keys()];
+    return keys.reduce((acc, key) => {
+        acc[key] = url.searchParams.get(key);
+        return acc;
+    }, {});
+}
+
+function formatDataForDB(data) {
+    data.date = new Date(data.date).toISOString().match(/\d{4}-\d{2}-\d{2}/)[0];
+    data.amount = parseFloat(data.amount);
+    data.price = parseFloat(data.price);
+    data.id && (data.id = parseInt(data.id));
 }
 
 export default routes;

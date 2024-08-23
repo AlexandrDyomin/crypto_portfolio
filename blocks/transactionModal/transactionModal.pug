@@ -2,7 +2,7 @@ mixin transactionModal(values = {})
     - var PROTOCOL = process.env.PROTOCOL
     - var HOST = process.env.HOST 
     - var PORT = process.env.PORT
-    form.transaction-modal(action="/save" method="GET")
+    form.transaction-modal(action=pathname method="GET")
         - var labels = { 'crypto-pair': 'Пара', date: 'Дата', amount: 'Количество', price: 'Цена' }
         each val, prop in labels
             label(for=prop) #{val}
@@ -13,6 +13,8 @@ mixin transactionModal(values = {})
             each val, prop in labels
                 input(id=prop type="radio" name="type" value=labels[prop] checked=(values.type === prop) ? true : false)
                 label(for=prop) #{val}
+        if values.id 
+            input(type="text" name="id" value=values.id hidden)
         .buttons 
             button.save(type="submit") Сохранить
             button.cancel(type="button") Отмена

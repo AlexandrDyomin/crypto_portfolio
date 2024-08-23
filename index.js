@@ -15,7 +15,7 @@ async function handleRequest(req, res) {
     res.setHeader('Access-Control-Allow-Origin', `http://${HOST}:${PORT}`);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
     
-    var isResourceReq = /\.\w+$/.test(req.url);
+    var isResourceReq = /\.\w+$/.test(req.url); // исправить регулярное выражение
     if (isResourceReq) {
         var contentType = defineContentType(req.url);
         routes.sendResource(req, res, { contentType });

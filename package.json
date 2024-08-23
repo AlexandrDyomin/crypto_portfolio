@@ -27,9 +27,9 @@
       "source": ["transactions/style.css", "transactions/script.js"],
       "distDir": "dist/transactions"
     },
-    "add_transaction": {
-      "source": ["add_transaction/style.css", "add_transaction/script.js"],
-      "distDir": "dist/add_transaction"
+    "transaction_form": {
+      "source": ["transaction_form/style.css", "transaction_form/script.js"],
+      "distDir": "dist/transaction_form"
     },
     "login": {
       "source": ["login/style.css"],
