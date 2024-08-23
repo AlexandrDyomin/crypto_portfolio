@@ -17,13 +17,37 @@ var routes = {
             rows: [{ ticker: 'btc', amount: 12 }]
         }));
     }),
-    '/login': sendLoginPage,
-    '/sign_up': sendSignUpPage,
-    '/create_accaunt': createAccaunt,
-    '/auth': authenticate,
+    '/login': decorate(function sendLoginPage(req, res){
+        res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+        res.end(renderFile('./login/index.pug', { 
+            cache: true,
+            action: `${PROTOCOL}://${HOST}:${PORT}/auth`,
+            loginPlaceholder: 'Логин',
+            passwordPlaceholder: 'Пароль',
+            buttonText: 'Войти',
+            linkToSignUp: `${PROTOCOL}://${HOST}:${PORT}/sign_up`,
+            warning: this.warning,
+            title: 'Вход',
+            h1: 'Вход'
+        }));
+    }),
+    '/sign_up': decorate(function sendSignUpPage(req,res) {
+        res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
+        res.end(renderFile('./sign_up/index.pug', { 
+            cache: true,
+            action: `${PROTOCOL}://${HOST}:${PORT}/create_accaunt`,
+            loginPlaceholder: 'Логин',
+            passwordPlaceholder: 'Пароль',
+            buttonText: 'Создать аккаунт',
+            linkToLogin: `${PROTOCOL}://${HOST}:${PORT}/login`,
+            warning: this.warning,
+            title: 'Создание аккаунта',
+            h1: 'Создайте свой аккаунт'
+        }));
+    }),
     '/transactions': decorate(async function sendTransactionsPage(req, res) {
         var rows = await getRows(this.userId);
-        formatData(rows);
+        formatDataForView(rows);
 
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./transactions/index.pug', { 
@@ -46,17 +70,18 @@ var routes = {
             h1: 'Добавить транзакцию',
         }));
     }),
+    '/p2p': 'sendP2pPage',
+    '/realizedPnL': 'sendRealizedPnL',
+    '/unrealizedPnL': 'sendUnrealizedPnL',
+    postPage404,
+    sendResource,
+    '/create_accaunt': createAccaunt,
+    '/auth': authenticate,
     '/save': decorate(async function save(req, res) {
         var url = new URL(req.url, `http://${HOST}:${PORT}`)
-        
-        var data = getData(url);
-        data.userId = this.userId;
-        data.date = new Date(data.date).toISOString().match(/\d{4}-\d{2}-\d{2}/)[0];
-        data.amount = parseFloat(data.amount);
-        data.price = parseFloat(data.price);
-        
+        var data = {userId: this.userId, ...getData(url)}
+        formatDataForDB(data);
         await insert(data);
-        
         redirect(res, '/transactions');
 
         function getData(url) {
@@ -67,8 +92,10 @@ var routes = {
             }, {});
         }
     
-        function formatData(data) {
-    
+        function formatDataForDB(data) {
+            data.date = new Date(data.date).toISOString().match(/\d{4}-\d{2}-\d{2}/)[0];
+            data.amount = parseFloat(data.amount);
+            data.price = parseFloat(data.price);
         }
     
         async function insert(data) {
@@ -80,34 +107,43 @@ var routes = {
             return result.rowCount;
         }
     }),
-    '/p2p': 'sendP2pPage',
-    '/realizedPnL': 'sendRealizedPnL',
-    '/unrealizedPnL': 'sendUnrealizedPnL',
-    sendResource,
-    postPage404
 };
 
 function decorate(fn) {
     return async (req, res) => {
         try {
-            var { session_id } = parseCookie(req.headers.cookie || '');
+            var { session_id, authError, accountCreationError } = parseCookie(req.headers.cookie || '');
             if (session_id) {
                 var userId = await getUserId(session_id);
             }
             
-            if (!session_id || !userId) {
+            var { pathname } = new URL(req.url, `http://${HOST}:${PORT}`);
+            if (pathname === '/sign_up' || pathname === '/login') {
+                if (session_id && userId) {
+                    redirect(res, '/');
+                    return;
+                }
+
+                if (accountCreationError === 'true') {
+                    var warning = 'Выбирите другой логин, пожалуйста! 😕'
+                }
+
+                if (authError === 'true') {
+                    var warning = 'Ошибочка вышла. 😕 Попробуйте еще разок.'
+                }
+            } else if (!session_id || !userId) {
                 redirect(res, '/login');
                 return;
             }
 
-            fn.call({ session_id, userId }, req, res)
+            fn.call({ session_id, userId, warning }, req, res)
         } catch (error) {
             handleError(res, err);
         }
     }
 }
 
-function formatData(rows) {
+function formatDataForView(rows) {
     var formatterDates = new Intl.DateTimeFormat('ru');
     rows.forEach((row) => {
         row.date = formatterDates.format(row.date);
@@ -115,72 +151,6 @@ function formatData(rows) {
             row[prop] = parseFloat(row[prop]).toString();
         })
     });
-}
-
-async function sendLoginPage(req, res) {
-    try {
-        var { session_id, authError } = parseCookie(req.headers.cookie || '');
-        if (session_id) {
-            var userId = await getUserId(session_id);
-        }
-        
-        if (session_id && userId) {
-            redirect(res, '/');
-            return;
-        }
-
-        if (authError === 'true') {
-            var warning = 'Ошибочка вышла. 😕 Попробуйте еще разок.'
-        }
-
-        res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end(renderFile('./login/index.pug', { 
-            cache: true,
-            action: `${PROTOCOL}://${HOST}:${PORT}/auth`,
-            loginPlaceholder: 'Логин',
-            passwordPlaceholder: 'Пароль',
-            buttonText: 'Войти',
-            linkToSignUp: `${PROTOCOL}://${HOST}:${PORT}/sign_up`,
-            warning,
-            title: 'Вход',
-            h1: 'Вход'
-        }));
-    } catch (err) {
-        handleError(res, err);
-    }
-}
-
-async function sendSignUpPage(req, res) {
-    try {
-        var { session_id, accountCreationError } = parseCookie(req.headers.cookie || '');
-        if (session_id) {
-            var userId = await getUserId(session_id);
-        }
-
-        if (session_id && userId) {
-            redirect(res, '/');
-            return;
-        }
-        
-        if (accountCreationError === 'true') {
-            var warning = 'Выбирите другой логин, пожалуйста! 😕'
-        }
-
-        res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-        res.end(renderFile('./sign_up/index.pug', { 
-            cache: true,
-            action: `${PROTOCOL}://${HOST}:${PORT}/create_accaunt`,
-            loginPlaceholder: 'Логин',
-            passwordPlaceholder: 'Пароль',
-            buttonText: 'Создать аккаунт',
-            linkToLogin: `${PROTOCOL}://${HOST}:${PORT}/login`,
-            warning,
-            title: 'Создание аккаунта',
-            h1: 'Создайте свой аккаунт'
-        }));
-    } catch (err) {
-        handleError(res, err);
-    }
 }
 
 function sendResource(req, res, { contentType, cacheControl = 'public, max-age=604800' }) {
