@@ -78,11 +78,11 @@ var routes = {
     '/create_accaunt': createAccaunt,
     '/auth': authenticate,
     '/save': decorate(async function save(req, res) {
-        var url = new URL(req.url, `http://${HOST}:${PORT}`)
-        var data = {userId: this.userId, ...getData(url)}
+        var url = new URL(req.url, `http://${HOST}:${PORT}`);
+        var data = {userId: this.userId, ...getData(url)};
         formatDataForDB(data);
-        await insert(data);
-        redirect(res, '/transactions');
+        let rowCount = await insert(data);
+        rowCount ? redirect(res, '/transactions') : redirect(res, '/add_transaction');
 
         function getData(url) {
             var keys = [...url.searchParams.keys()];
@@ -107,6 +107,18 @@ var routes = {
             return result.rowCount;
         }
     }),
+    '/remove': decorate(async function remove(req, res) {
+        var id = new URL(req.url, `http://${HOST}:${PORT}`)
+            .searchParams.get('id');
+        var rowCount = del(id);
+        
+        rowCount ? redirect(res, '/transactions') : redirect(res, '/transactions', {'Set-Cookie': 'delError=true; max-age=1'})
+
+        async function del(id) {
+            var result = await makeReqToDb('DELETE FROM transactions WHERE id=$1', [id]);
+            return result.rowCount;
+        }
+    })
 };
 
 function decorate(fn) {
@@ -132,7 +144,7 @@ function decorate(fn) {
                     var warning = 'Ошибочка вышла. 😕 Попробуйте еще разок.'
                 }
             } else if (!session_id || !userId) {
-                redirect(res, '/login');
+                redirect(res, '/login', {ddd:1});
                 return;
             }
 
@@ -264,8 +276,14 @@ function makeParserFor(strType) {
 var parseCookie = makeParserFor('cookie');
 var parseRequestBody = makeParserFor('requestBody');
 
-function redirect(res, location) {
+function redirect(res, location, headers) {
     res.writeHead(302, { 'Location': location });
+    if (headers) {
+        for (var { key, value } of Object.entries(headers)) {
+            console.log(key, value)
+            res.setHeader(key, value);
+        }
+    }
     res.end();
 }
 
