@@ -2,6 +2,7 @@ import { renderFile } from 'pug';
 import { readFileSync } from 'fs';
 import pool from './pgPool.js';
 import { generateRandomHexString as generateSessionId, hash, verify } from './cryptography.js';
+import requests from './sql_commands/requests.js';
 
 const PROTOCOL = process.env.PROTOCOL;
 const HOST = process.env.HOST;
@@ -58,7 +59,7 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            var result = await makeReqToDb('SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum FROM transactions WHERE user_id = $1', [userId]);
+            var result = await makeReqToDb(requests.getTransactions, [userId]);
             return result.rows;
         }
     }),
@@ -83,9 +84,134 @@ var routes = {
             pathname
         }));
     }),
-    '/p2p': 'sendP2pPage',
-    '/realizedPnL': 'sendRealizedPnL',
-    '/unrealizedPnL': 'sendUnrealizedPnL',
+    '/unrealizedPnL': decorate(async function sendUnrealizedPnL(req, res) {
+        var rows = await getRows(this.userId);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        formatDataPnLForView(rows);
+        dropTmpTbales();
+        res.end(renderFile('./unrealizedPnL/index.pug', { 
+            cache: true,
+            title: 'Нереализованная прибыль(убыток)',
+            h1: 'Нереализованная прибыль(убыток)',
+            rows
+        }));
+
+        async function getRows(userId) {
+            var result = await makeReqToDb([[
+                "CREATE temporary TABLE IF NOT EXISTS total_purchased as select crypto_pair, sum(amount) as amount from transactions WHERE transaction_type = 'покупка' and user_id = $1 GROUP BY crypto_pair", 
+                [userId]
+            ], [
+                "CREATE temporary TABLE IF NOT EXISTS total_sold as select crypto_pair, sum(amount) as amount from transactions WHERE transaction_type = 'продажа' and user_id = $1 GROUP BY crypto_pair",
+                [userId]
+            ], [
+                'CREATE temporary TABLE IF NOT EXISTS rest_of_coins as select crypto_pair, coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) as amount FROM total_purchased left join total_sold using(crypto_pair) WHERE coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) > 0'
+            ], [
+                `CREATE temporary TABLE IF NOT EXISTS delta as SELECT crypto_pair, CASE WHEN avg_sold_price > avg_purchase_price THEN (((total_sold * avg_sold_price) - (total_sold * avg_purchase_price)) / total_sold) ELSE 0 END as delta
+
+                FROM (
+
+                SELECT crypto_pair, total_purchased.amount as total_purchased, sum(transactions.amount /total_purchased.amount * price) as avg_purchase_price
+
+                FROM transactions JOIN (
+
+                SELECT crypto_pair, sum(amount) as amount
+
+                FROM transactions
+
+                WHERE transaction_type = 'покупка' and user_id = $1
+
+                GROUP BY crypto_pair
+
+                ) total_purchased
+
+                USING(crypto_pair)
+
+                WHERE transaction_type = 'покупка'
+
+                GROUP BY crypto_pair, total_purchased
+
+                ) t1
+
+                JOIN (
+
+                SELECT crypto_pair, total_sold.amount as total_sold, sum(transactions.amount /total_sold.amount * price) as avg_sold_price
+
+                FROM transactions JOIN (
+
+                SELECT crypto_pair, sum(amount) as amount
+
+                FROM transactions
+
+                WHERE transaction_type = 'продажа' and user_id = $1
+
+                GROUP BY crypto_pair
+
+                ) total_sold
+
+                USING(crypto_pair)
+
+                WHERE transaction_type = 'продажа'
+
+                GROUP BY crypto_pair, total_sold
+
+                ) t2
+
+                USING(crypto_pair)`,
+                [userId]
+            ], [
+                "CREATE temporary TABLE IF NOT EXISTS avg_purchase_price as select crypto_pair, sum(amount * price) / sum(amount) + delta as price  FROM transactions  JOIN delta USING(crypto_pair) WHERE transaction_type = 'покупка' and user_id = $1 group BY crypto_pair, delta",
+                [userId]
+            ], [
+                'CREATE temporary TABLE IF NOT EXISTS current_prices(crypto_pair VARCHAR(12) NOT NULL, price NUMERIC(22,10) NOT NULL, PRIMARY KEY (crypto_pair))'
+            ], [
+                "insert into current_prices (crypto_pair, price) values('BTC/USDT', 59000), ('SOL/USDT', 12), ('SUI/USDT', 1.858)"
+            ], [
+                'CREATE temporary TABLE IF NOT EXISTS profit as select crypto_pair, ROUND((current_prices.price / avg_purchase_price.price  - 1) * 100, 2) as profit_in_percentage, ROUND((current_prices.price / avg_purchase_price.price -1) * avg_purchase_price.price * rest_of_coins.amount, 2) as profit FROM current_prices join avg_purchase_price using(crypto_pair) join rest_of_coins using(crypto_pair)'
+            ], [
+                "select crypto_pair,  rest_of_coins.amount, avg_purchase_price.price as avg_purchase_price, rest_of_coins.amount * avg_purchase_price.price as sum, current_prices.price as current_price, profit_in_percentage || '% | ' || profit FROM rest_of_coins join avg_purchase_price using(crypto_pair) join current_prices USING(crypto_pair) join profit using(crypto_pair)"
+            ]]);
+            return result.rows;
+        }
+
+        function formatDataPnLForView(rows) {
+            rows.forEach((row) => {
+                ['amount', 'avg_purchase_price', 'sum', 'current_price'].forEach((prop) => {
+                    row[prop] = parseFloat(row[prop]).toString();
+                });
+            });
+        }
+
+        function dropTmpTbales() {
+            var requests = ['total_purchased', 'total_sold', 'rest_of_coins', 'delta', 'avg_purchase_price', 'current_prices', 'profit'].
+                map((tableName, i, arr) => arr[i] = [`DROP TABLE IF EXISTS ${tableName}`]);
+            makeReqToDb(requests);
+        }
+    }),
+    '/realizedPnL': decorate(async function sendRealizedPnL(req, res) {
+        var rows = await getRows(this.userId);
+        formatDataPnLForView(rows);
+
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(renderFile('./realizedPnL/index.pug', { 
+            cache: true,
+            title: 'Реализованная прибыль(убыток)',
+            h1: 'Реализованная прибыль(убыток)',
+            rows
+        }));
+
+        async function getRows(userId) {
+            var result = await makeReqToDb(requests.getRealizedPnL, [userId]);
+            return result.rows;
+        }
+
+        function formatDataPnLForView(rows) {
+            rows.forEach((row) => {
+                ['total_sold', 'avg_sold_price', 'received'].forEach((prop) => {
+                    row[prop] = parseFloat(row[prop]).toString();
+                });
+            });
+        }
+    }),
     postPage404,
     sendResource,
     '/create_accaunt': createAccaunt,
@@ -102,7 +228,7 @@ var routes = {
         async function insert(data) {
             var { userId, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
             var result = await makeReqToDb(
-                'INSERT INTO transactions(user_id, crypto_pair, date, transaction_type, amount, price) VALUES($1, $2, $3, $4, $5, $6)', 
+                requests.insertTransaction, 
                 [userId, cryptoPair, date, type, amount, price]
             );
             return result.rowCount;
@@ -117,7 +243,7 @@ var routes = {
             sendErrorPage(res, new Error('Не удалось сохранить данные'));
 
         async function del(id) {
-            var result = await makeReqToDb('DELETE FROM transactions WHERE id=$1', [id]);
+            var result = await makeReqToDb(requests.deleteTransaction, [id]);
             return result.rowCount;
         }
     }),
@@ -133,9 +259,7 @@ var routes = {
         async function update(data) {
             var { id, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
             var result = await makeReqToDb(
-                `UPDATE transactions 
-                SET crypto_pair = $1, date = $2, transaction_type = $3, amount = $4, price = $5
-                WHERE id = $6`, 
+                requests.editTransaction, 
                 [cryptoPair, date, type, amount, price, id]
             );
             return result.rowCount;
@@ -211,7 +335,7 @@ function createAccaunt(req, res) {
         try {
             mergeChunks(body);
             var { login, password } = parseRequestBody(body[0].toString());
-            await makeReqToDb('INSERT INTO users (login, password) VALUES ($1, $2)', [login, await hash(password)]);
+            await makeReqToDb(requests.insertUser, [login, await hash(password)]);
             redirect(res, '/login');
         } catch (err) {
             if (err.code === '23505') {
@@ -237,7 +361,7 @@ function authenticate(req, res) {
             mergeChunks(body);
             var { login, password } = parseRequestBody(body[0].toString());
             var result = (await makeReqToDb(
-                `SELECT id, password FROM users WHERE login = $1`, 
+                requests.getUser, 
                 login
             ));
 
@@ -253,7 +377,7 @@ function authenticate(req, res) {
             } 
             
             var session_id = generateSessionId();
-            await makeReqToDb('INSERT INTO sessions (session_id, user_id) VALUES ($1, $2)', [session_id, user_id]);
+            await makeReqToDb(requests.insertSession, [session_id, user_id]);
             res.setHeader('Set-Cookie', `session_id=${session_id}; SameSite=Strict; HttpOnly; max-age=604800;`)
             redirect(res, '/');
         } catch (err) {
@@ -294,15 +418,28 @@ function redirect(res, location, headers = {}) {
 }
 
 async function makeReqToDb(query, ...values) {
-    var client = await pool.connect();
-    var result = await client.query(query, values.flat());
-    client.release();
-    return result;
+    try {
+        var client = await pool.connect();
+        await client.query('BEGIN');
+        if (typeof query === 'string') {
+            var result = await client.query(query, values.flat());
+        } else if (Array.isArray(query)) {
+            query.forEach(async (q) => {
+                result = await client.query(q[0], q[1]?.flat());
+            });
+        }
+        await client.query('COMMIT');
+        return result;
+    } catch (err) {
+        await client.query('ROLLBACK'); 
+    } finally {
+        client.release();
+    }
 }
 
 async function getUserId(session_id) {
     var userId = (await makeReqToDb(
-        'SELECT user_id FROM sessions WHERE session_id = $1', 
+        requests.getUserId, 
         session_id
     )).rows[0]?.user_id;
 
@@ -328,7 +465,6 @@ function parseSearchParm(url) {
 }
 
 function formatDataForDB(data) {
-    data.date = new Date(data.date).toISOString().match(/\d{4}-\d{2}-\d{2}/)[0];
     data.amount = parseFloat(data.amount);
     data.price = parseFloat(data.price);
     data.id && (data.id = parseInt(data.id));

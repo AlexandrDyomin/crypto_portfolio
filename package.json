@@ -31,6 +31,14 @@
       "source": ["transaction_form/style.css", "transaction_form/script.js"],
       "distDir": "dist/transaction_form"
     },
+    "realizedPnL": {
+      "source": [],
+      "distDir": "dist/realizedPnL"
+    },
+    "unrealizedPnL": {
+      "source": [],
+      "distDir": "dist/unrealizedPnL"
+    },
     "login": {
       "source": ["login/style.css"],
       "distDir": "dist/login"

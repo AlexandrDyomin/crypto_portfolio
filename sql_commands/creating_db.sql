@@ -32,14 +32,14 @@ CREATE TABLE transactions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE TABLE p2p (
-    id SERIAL,
-    user_id INTEGER,
-    crypto_pair VARCHAR(12) NOT NULL,
-    date DATE NOT NULL,
-    type_of_transaction VARCHAR(7) NOT NULl,
-    amount NUMERIC(22,10) NOT NULL,
-    price NUMERIC(22,10) NOT NULL,
-    PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
-);
+-- CREATE TABLE p2p (
+--     id SERIAL,
+--     user_id INTEGER,
+--     crypto_pair VARCHAR(12) NOT NULL,
+--     date DATE NOT NULL,
+--     type_of_transaction VARCHAR(7) NOT NULl,
+--     amount NUMERIC(22,10) NOT NULL,
+--     price NUMERIC(22,10) NOT NULL,
+--     PRIMARY KEY (id),
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+-- );

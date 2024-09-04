@@ -3,18 +3,25 @@ mixin transactionModal(values = {})
     - var HOST = process.env.HOST 
     - var PORT = process.env.PORT
     form.transaction-modal(action=pathname method="GET")
-        - var labels = { 'crypto-pair': 'Пара', date: 'Дата', amount: 'Количество', price: 'Цена' }
-        each val, prop in labels
-            label(for=prop) #{val}
-            input(id=prop type="text" name=prop value=values[prop] ? values[prop] : "")
+        label(for="crypto-pair") Пара
+        input#crypto-pair(type="text", name="crypto-pair", value=values[prop] ? values[prop] : "")
+        label(for="date") Дата
+        input#date(type="date", name="date", value=values[prop] ? values[prop] : "")
+        label(for="amount") Количество
+        input#amount(type="number", name="amount", value=values[prop] ? values[prop] : "" step="0.00001")
+        label(for="price") Цена
+        input#price(type="number", name="price", value=values[prop] ? values[prop] : "" step="0.00001")
 
         .transaction-type
-            - labels = { buy: 'Покупка', sell: 'Продажа', transh: 'Перевод' }
-            each val, prop in labels
-                input(id=prop type="radio" name="type" value=labels[prop] checked=(values.type === prop) ? true : false)
-                label(for=prop) #{val}
+            input#buy(type="radio" name="type" value="покупка" checked=(values.type === 'buy') ? true : false)
+            label(for="buy") Покупка
+            input#sell(type="radio" name="type" value="продажа" checked=(values.type === 'sell') ? true : false)
+            label(for="sell") Продажа
+            input#transh(type="radio" name="type" value="перевод" checked=(values.type === 'transh') ? true : false)
+            label(for="transh") Перевод
+          
         if values.id 
-            input(type="text" name="id" value=values.id hidden)
+            input(type="number" name="id" value=values.id hidden)
         .buttons 
             button.save(type="submit") Сохранить
             button.cancel(type="button") Отмена

@@ -6,10 +6,6 @@ html {
     color: #2D3E40;
 }
 
-h1 {
-    font-size: 1.7rem;
-}
-
 .page {
     padding: 1.5rem;
     font-size: 1.4rem;
@@ -36,9 +32,12 @@ header {
 }
 
 h1 {
+    font-size: 1.7rem;
     flex-grow: 1;
     text-align: center;
     font-weight: 600;
+    max-width: 80%;
+    margin: 0 auto;
 }
 
 /* Таблица */

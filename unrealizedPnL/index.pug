@@ -1,0 +1,17 @@
+extends ../layouts/content/content.pug
+
+block parts 
+    include ../blocks/c-row.pug
+block content 
+    .table-container-outer 
+        .table-container
+            table.info 
+                thead
+                    - var thead = ['Пара', 'Количество', 'Средняя цена покупки', 'Сумма', 'Текущая цена', 'Прибыль(убыток)'];
+                    tr.headers
+                        each head, i in thead
+                            th #{head}
+                tbody 
+                    each row in rows
+                        +c-row(row)
+        .table__gradient_disbled
