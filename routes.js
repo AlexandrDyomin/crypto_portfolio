@@ -88,7 +88,7 @@ var routes = {
         var rows = await getRows(this.userId);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         formatDataPnLForView(rows);
-        dropTmpTbales();
+        dropTmpTbales('total_purchased', 'total_sold', 'rest_of_coins', 'delta', 'avg_purchase_price', 'current_prices', 'profit');
         res.end(renderFile('./unrealizedPnL/index.pug', { 
             cache: true,
             title: 'Нереализованная прибыль(убыток)',
@@ -106,7 +106,7 @@ var routes = {
             ], [
                 'CREATE temporary TABLE IF NOT EXISTS rest_of_coins as select crypto_pair, coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) as amount FROM total_purchased left join total_sold using(crypto_pair) WHERE coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) > 0'
             ], [
-                `CREATE temporary TABLE IF NOT EXISTS delta as SELECT crypto_pair, CASE WHEN avg_sold_price > avg_purchase_price THEN (((total_sold * avg_sold_price) - (total_sold * avg_purchase_price)) / total_sold) ELSE 0 END as delta
+                `CREATE temporary TABLE IF NOT EXISTS delta as SELECT crypto_pair, CASE WHEN avg_sold_price > avg_purchase_price AND total_sold > (total_purchased - total_sold) THEN (((total_sold * avg_sold_price) - (total_sold * avg_purchase_price)) / total_sold) ELSE 0 END as delta
 
                 FROM (
 
@@ -153,9 +153,9 @@ var routes = {
                 WHERE transaction_type = 'продажа'
 
                 GROUP BY crypto_pair, total_sold
-
                 ) t2
-
+                USING(crypto_pair)
+                JOIN rest_of_coins
                 USING(crypto_pair)`,
                 [userId]
             ], [
@@ -180,17 +180,11 @@ var routes = {
                 });
             });
         }
-
-        function dropTmpTbales() {
-            var requests = ['total_purchased', 'total_sold', 'rest_of_coins', 'delta', 'avg_purchase_price', 'current_prices', 'profit'].
-                map((tableName, i, arr) => arr[i] = [`DROP TABLE IF EXISTS ${tableName}`]);
-            makeReqToDb(requests);
-        }
     }),
     '/realizedPnL': decorate(async function sendRealizedPnL(req, res) {
         var rows = await getRows(this.userId);
+        dropTmpTbales('last_date_of_sale', 'total_purchased', 'avg_purchase_price', 'total_sold', 'avg_sold_price')
         formatDataPnLForView(rows);
-
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./realizedPnL/index.pug', { 
             cache: true,
@@ -200,7 +194,14 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            var result = await makeReqToDb(requests.getRealizedPnL, [userId]);
+            var req = requests.getRealizedPnL.map((item) => {
+                var r = [item[0]];
+                if (item[1]) {
+                    r[1] = [userId];
+                }
+                return r;
+            });
+            var result = await makeReqToDb(req, [userId]);
             return result.rows;
         }
 
@@ -299,6 +300,12 @@ function decorate(fn) {
             sendErrorPage(res, error);
         }
     }
+}
+
+function dropTmpTbales(...tableNames) {
+    var requests = tableNames.
+        map((tableName, i, arr) => arr[i] = [`DROP TABLE IF EXISTS ${tableName}`]);
+    makeReqToDb(requests);
 }
 
 function sendResource(req, res, { contentType, cacheControl = 'public, max-age=604800' }) {

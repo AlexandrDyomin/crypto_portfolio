@@ -4,16 +4,16 @@ mixin transactionModal(values = {})
     - var PORT = process.env.PORT
     form.transaction-modal(action=pathname method="GET")
         label(for="crypto-pair") Пара
-        input#crypto-pair(type="text", name="crypto-pair", value=values[prop] ? values[prop] : "")
+        input#crypto-pair(type="text", name="crypto-pair", value=values["crypto-pair"] ? values["crypto-pair"] : "" required)
         label(for="date") Дата
-        input#date(type="date", name="date", value=values[prop] ? values[prop] : "")
+        input#date(type="date", name="date", value=values.date ? values.date : "" required)
         label(for="amount") Количество
-        input#amount(type="number", name="amount", value=values[prop] ? values[prop] : "" step="0.00001")
+        input#amount(type="number", name="amount", value=values.amount ? values.amount : "" step="0.00001" required)
         label(for="price") Цена
-        input#price(type="number", name="price", value=values[prop] ? values[prop] : "" step="0.00001")
+        input#price(type="number", name="price", value=values.price ? values.price : "" step="0.00001" required)
 
         .transaction-type
-            input#buy(type="radio" name="type" value="покупка" checked=(values.type === 'buy') ? true : false)
+            input#buy(type="radio" name="type" value="покупка" checked=(values.type === 'buy') ? true : false required)
             label(for="buy") Покупка
             input#sell(type="radio" name="type" value="продажа" checked=(values.type === 'sell') ? true : false)
             label(for="sell") Продажа
