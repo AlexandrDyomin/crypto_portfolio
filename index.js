@@ -15,9 +15,8 @@ async function handleRequest(req, res) {
     res.setHeader('Access-Control-Allow-Origin', `http://${HOST}:${PORT}`);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
     
-    var isResourceReq = /\.\w+$/.test(req.url); // исправить регулярное выражение
-    if (isResourceReq) {
-        var contentType = defineContentType(req.url);
+    var contentType = defineContentType(req.url)
+    if (contentType) {
         routes.sendResource(req, res, { contentType });
         return;
     }
@@ -37,7 +36,7 @@ function defineContentType(url) {
         '.map': 'text/plain',
         '.ico': 'image/x-icon'
     };
-    var extention = url.match(/\.\w+$/)?.[0];
+    var extention = url.match(/\.js|\.css|\.map|\.ico/)?.[0];
     return contentTypes[extention];
 }
 

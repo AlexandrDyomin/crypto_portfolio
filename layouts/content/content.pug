@@ -9,6 +9,10 @@ html(lang="ru")
         block scripts
             script(type="module", src="dist/layouts/content/script.js" defer) 
         block parts
+        block variables
+            - var PROTOCOL = process.env.PROTOCOL
+            - var HOST = process.env.HOST 
+            - var PORT = process.env.PORT
     body 
         .page 
             .container

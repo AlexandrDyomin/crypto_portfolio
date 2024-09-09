@@ -465,6 +465,7 @@ function formatDataForView(rows) {
 
 function parseSearchParm(url) {
     var keys = [...url.searchParams.keys()];
+    
     return keys.reduce((acc, key) => {
         acc[key] = url.searchParams.get(key);
         return acc;

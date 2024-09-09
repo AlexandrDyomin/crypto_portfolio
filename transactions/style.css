@@ -1,1 +1,35 @@
 @import '../blocks/addTransactionBtn/addTransactionBtn.css';
+
+.context-menu {
+    display: flex;
+    position: fixed;
+    align-items: center;
+    width: max-content;
+    margin: 0 auto;
+    background-color: black;
+    height: 3rem;
+    border-radius: 1.8rem;
+    filter: drop-shadow(0 7px 4px rgba(0, 0, 0, 0.5));
+}
+
+.context-menu[data-display=hidden] {
+    display: none;
+}
+
+.del,
+.edit {
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 500;
+    padding: 0 2rem;
+}
+
+.del {
+    color: #C73D3D;
+    border-right: 1px solid white;
+}
+
+.edit {
+    color: white;
+    border-left: 1px solid white;
+}

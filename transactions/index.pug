@@ -6,6 +6,7 @@ block append scripts
     script(type="module", src="dist/transactions/script.js" defer) 
 block parts 
     include ../blocks/c-row.pug
+
 block content 
     .table-container-outer 
         .table-container
@@ -18,11 +19,11 @@ block content
                 tbody 
                     each row in rows
                         +c-row(row)
+            .context-menu(data-display="hidden")
+                a.del(href=`${PROTOCOL}://${HOST}:${PORT}/remove_transaction`) Удалить
+                a.edit(href=`${PROTOCOL}://${HOST}:${PORT}/transaction_form`) Изменить
         .table__gradient_disbled
         
-    - var PROTOCOL = process.env.PROTOCOL
-    - var HOST = process.env.HOST 
-    - var PORT = process.env.PORT
     a.add-transaction(href=`${PROTOCOL}://${HOST}:${PORT}/transaction_form`) Добавить транзакцию
 
 

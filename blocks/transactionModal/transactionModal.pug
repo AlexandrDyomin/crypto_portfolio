@@ -13,11 +13,11 @@ mixin transactionModal(values = {})
         input#price(type="number", name="price", value=values.price ? values.price : "" step="0.00001" required)
 
         .transaction-type
-            input#buy(type="radio" name="type" value="покупка" checked=(values.type === 'buy') ? true : false required)
+            input#buy(type="radio" name="type" value="покупка" checked=(values.type === 'покупка') ? true : false required)
             label(for="buy") Покупка
-            input#sell(type="radio" name="type" value="продажа" checked=(values.type === 'sell') ? true : false)
+            input#sell(type="radio" name="type" value="продажа" checked=(values.type === 'продажа') ? true : false)
             label(for="sell") Продажа
-            input#transh(type="radio" name="type" value="перевод" checked=(values.type === 'transh') ? true : false)
+            input#transh(type="radio" name="type" value="перевод" checked=(values.type === 'перевод') ? true : false)
             label(for="transh") Перевод
           
         if values.id 
