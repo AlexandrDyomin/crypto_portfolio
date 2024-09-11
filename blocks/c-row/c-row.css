@@ -1,0 +1,3 @@
+.data-row[data-display=blured] {
+    filter: blur(2px);
+}

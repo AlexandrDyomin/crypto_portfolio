@@ -32,6 +32,7 @@ function showMenu(e) {
             editBtn.href
         );
         editBtn.href = editUrl.href;
+        removeBlur();
         menu.removeAttribute('data-display');
     
         var rect = transaction.getBoundingClientRect();
@@ -39,7 +40,10 @@ function showMenu(e) {
         var menuWidth = menu.offsetWidth;
         menu.style.top = rect.top + rect.height + 'px';
         menu.style.left = `${(documentWidth / 2) - (menuWidth / 2)}px`;
-    
+
+        var otherRows = document.querySelectorAll(`.data-row:not([data-id="${transaction.dataset.id}"])`);
+        otherRows.forEach((row) => row.dataset.display = 'blured');
+
         ['keydown', 'pointerdown']
             .forEach((event) => document.addEventListener(event, close, { once: true }));
     }
@@ -47,11 +51,20 @@ function showMenu(e) {
     function close(e) {
         if (e.code === 'Escape') {
             menu.dataset.display = 'hidden';
+            removeBlur();
             return;
         }
     
         if (e.buttons === 1 && !/edit|del/.test(e.target.className)) {
             menu.dataset.display = 'hidden';
+            removeBlur();
+        } else {
+            document.addEventListener('pointerdown', close, { once: true });
         }
+    }
+
+    function removeBlur() {
+        document.querySelectorAll('.data-row[data-display]').
+            forEach((row) => row.removeAttribute('data-display'));
     }
 }
