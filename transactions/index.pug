@@ -4,9 +4,10 @@ block append styles
     link(rel="stylesheet", href="dist/transactions/style.css")
 block append scripts
     script(type="module", src="dist/transactions/script.js" defer) 
-block parts 
+block append parts 
     include ../blocks/c-row/c-row.pug
-
+block append variables 
+    -var activeLink = 2
 block content 
     .table-container-outer 
         .table-container
@@ -25,6 +26,3 @@ block content
         .table__gradient_disbled
         
     a.add-transaction(href=`${PROTOCOL}://${HOST}:${PORT}/transaction_form`) Добавить транзакцию
-
-
-        

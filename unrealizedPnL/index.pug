@@ -2,6 +2,8 @@ extends ../layouts/content/content.pug
 
 block parts 
     include ../blocks/c-row/c-row.pug
+block append variables 
+    -var activeLink = 4
 block content 
     .table-container-outer 
         .table-container

@@ -3,4 +3,10 @@
     bottom: 5rem;
     left: 50%;
     transform: translateX(-50%);
+    text-decoration: none;
+    padding: 1rem 2rem;
+    background-color: #258646;
+    color: white;
+    font-weight: 500;
+    border-radius: 1.8rem;
 }

@@ -1,0 +1,12 @@
+.navigation
+    button.burger
+    nav
+        ul
+            li
+                a(href=`${PROTOCOL}://${HOST}:${PORT}/` data-status=activeLink === 1 ? "active" : "") Главная
+            li
+                a(href=`${PROTOCOL}://${HOST}:${PORT}/transactions` data-status=activeLink === 2 ? "active" : "") Транзакции
+            li
+                a(href=`${PROTOCOL}://${HOST}:${PORT}/realizedPnL` data-status=activeLink === 3 ? "active" : "") Реализованный PnL
+            li
+                a(href=`${PROTOCOL}://${HOST}:${PORT}/unrealizedPnL` data-status=activeLink === 4 ? "active" : "") Нереализованный PnL

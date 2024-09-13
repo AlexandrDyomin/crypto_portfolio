@@ -34,9 +34,12 @@ function defineContentType(url) {
         '.js': 'application/javascript',
         '.css': 'text/css',
         '.map': 'text/plain',
-        '.ico': 'image/x-icon'
+        '.ico': 'image/x-icon',
+        '.jpg': 'image/jpeg',
+        '.png': 'image/jpeg'
+
     };
-    var extention = url.match(/\.js|\.css|\.map|\.ico/)?.[0];
+    var extention = url.match(/\.js|\.css|\.map|\.ico|\.jpg|\.png/)?.[0];
     return contentTypes[extention];
 }
 

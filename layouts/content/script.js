@@ -1,1 +1,1 @@
-console.log(1)
+import "../../blocks/nav/nav.js";

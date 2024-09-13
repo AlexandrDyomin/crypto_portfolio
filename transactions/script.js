@@ -45,21 +45,28 @@ function showMenu(e) {
         otherRows.forEach((row) => row.dataset.display = 'blured');
 
         ['keydown', 'pointerdown']
-            .forEach((event) => document.addEventListener(event, close, { once: true }));
+            .forEach((event) => document.addEventListener(event, close));
     }
 
     function close(e) {
         if (e.code === 'Escape') {
             menu.dataset.display = 'hidden';
             removeBlur();
+            ['keydown', 'pointerdown']
+                .forEach((event) => document.removeEventListener(event, close));
             return;
         }
     
         if (e.buttons === 1 && !/edit|del/.test(e.target.className)) {
             menu.dataset.display = 'hidden';
             removeBlur();
-        } else {
-            document.addEventListener('pointerdown', close, { once: true });
+            ['keydown', 'pointerdown']
+                .forEach((event) => document.removeEventListener(event, close));
+            return;
+        } 
+
+        if (e.target.nodeName === 'A' && e.target.closest('.context-menu')) {
+            document.addEventListener('pointerdown', close);
         }
     }
 
