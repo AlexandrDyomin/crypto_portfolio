@@ -1,0 +1,12 @@
+mixin radio-btns(options)
+  .radio-buttons 
+    each item in options
+      label.radio-buttons__label
+        input.radio-buttons__btn(
+            type="radio" 
+            name=item.name 
+            value=item.value
+            checked=item.checked
+            required=item.required
+        )
+        .radio-buttons__text=item.label

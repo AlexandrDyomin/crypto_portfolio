@@ -1,27 +1,29 @@
+include ../radio-btns/radio-btns.pug
+
 mixin transactionModal(values = {})
     - var PROTOCOL = process.env.PROTOCOL
     - var HOST = process.env.HOST 
     - var PORT = process.env.PORT
     form.transaction-modal(action=pathname method="GET")
-        label(for="crypto-pair") Пара
-        input#crypto-pair(type="text", name="crypto-pair", value=values["crypto-pair"] ? values["crypto-pair"] : "" required)
-        label(for="date") Дата
-        input#date(type="date", name="date", value=values.date ? values.date : "" required)
-        label(for="amount") Количество
-        input#amount(type="number", name="amount", value=values.amount ? values.amount : "" step="0.00001" required)
-        label(for="price") Цена
-        input#price(type="number", name="price", value=values.price ? values.price : "" step="0.00001" required)
+        .transaction-fields
+            label(for="crypto-pair") Пара
+            input#crypto-pair(type="text", name="crypto-pair", value=values["crypto-pair"] ? values["crypto-pair"] : "" required)
+            label(for="date") Дата
+            input#date(type="date", name="date", value=values.date ? values.date : "" required)
+            label(for="amount") Количество
+            input#amount(type="number", name="amount", value=values.amount ? values.amount : "" step="0.00001" required)
+            label(for="price") Цена
+            input#price(type="number", name="price", value=values.price ? values.price : "" step="0.00001" required)
 
         .transaction-type
-            input#buy(type="radio" name="type" value="покупка" checked=(values.type === 'покупка') ? true : false required)
-            label(for="buy") Покупка
-            input#sell(type="radio" name="type" value="продажа" checked=(values.type === 'продажа') ? true : false)
-            label(for="sell") Продажа
-            input#transh(type="radio" name="type" value="перевод" checked=(values.type === 'перевод') ? true : false)
-            label(for="transh") Перевод
+            +radio-btns([
+                { name: "type", label: 'Покупка', value: "покупка", checked:  values.type === 'покупка' ? true : false, required: true }, 
+                { name: "type", label: 'Продажа', value: "продажа", checked:  values.type === 'продажа' ? true : false },
+                { name: "type", label: 'Перевод', value: "перевод", checked: values.type === 'перевод' ? true : false }
+            ])
           
         if values.id 
             input(type="number" name="id" value=values.id hidden)
         .buttons 
-            button.save(type="submit") Сохранить
+            button.save-transaction(type="submit") Сохранить
             button.cancel(type="button") Отмена

@@ -1,14 +1,14 @@
 extends ../layouts/content/content.pug
 
 block append styles 
-    link(rel="stylesheet", href="dist/add_transaction/style.css")
+    link(rel="stylesheet", href="dist/transaction_form/style.css")
 block append scripts
-    script(type="module", src="dist/add_transaction/script.js" defer) 
+    script(type="module", src="dist/transaction_form/script.js" defer) 
 block parts 
     include ../blocks/transactionModal/transactionModal.pug
 
 block header
-    h2 #{title}
+    h1 #{title}
 block content
     +transactionModal(values)
         

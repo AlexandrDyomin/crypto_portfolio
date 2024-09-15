@@ -1,21 +1,65 @@
-h2 {
+h1 {
     text-align: center;
 }
 
-form {
-    display: flex;
-    flex-direction: column;
+.transaction-modal {
+    padding: 1rem 0;
+    max-width: 55rem;
+    margin: 0 auto;
+    font-size: 1.6rem;
 }
 
-label {
-    margin-bottom: 1rem;
-}
+.transaction-fields {
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+    align-items: center;
+    gap: 2.5rem 2rem;
+    font-weight: 500;
+    margin-bottom: 4rem;
+} 
 
-input[type="text"] {
-    margin-bottom: 2rem;
+#crypto-pair,
+#date,
+#amount,
+#price {
+    background-color: #B98E3E;
+    border-radius: 2rem;
+    height: 4rem;
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    padding: 1rem 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+    font-size: 1.6rem;
 }
 
 .buttons {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-evenly;
+    position: fixed;
+    max-width: 55rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    bottom: 6rem;
+    gap: 2rem;
+    margin: 0 auto;
+}
+
+.save-transaction,
+.cancel {
+    padding: 1rem 1.5rem;
+    border-radius: 2rem;
+    color: white;
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+    border: none;
+    min-width: 11rem;
+    font-size: 1.6rem;
+    cursor: pointer;
+}
+
+.save-transaction {
+    background-color: #258646;
+}
+
+.cancel {
+    background-color: #C73D3D;
 }
