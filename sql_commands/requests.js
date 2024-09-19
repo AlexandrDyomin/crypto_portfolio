@@ -1,7 +1,8 @@
 export default {
     getTransactions: `SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum 
                     FROM transactions 
-                    WHERE user_id = $1`,
+                    WHERE user_id = $1
+                    ORDER BY date DESC`,
     getUnrealizedPnL: ``,
     getRealizedPnL: [
         [

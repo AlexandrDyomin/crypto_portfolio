@@ -26,7 +26,7 @@ function showMenu(e) {
         
         var [cryptoPair, date, type, amount, price] = [...transaction.children]
             .map((item) => item.textContent);
-        var formatDate = `${date.slice(-4)}-${date.slice(3,5)}-${date.slice(0,2)}`;
+        var formatDate = `${date.slice(-4)}-${date.slice(3,5)}-${date.slice(0,2)} ${new Date().toLocaleTimeString().slice(0, 5)}`;
         var editUrl = new URL(
             `?id=${transaction.dataset.id}&crypto-pair=${cryptoPair}&date=${formatDate}&type=${type}&amount=${amount}&price=${price}`, 
             editBtn.href

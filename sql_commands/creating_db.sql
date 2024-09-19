@@ -24,7 +24,7 @@ CREATE TABLE transactions (
     id SERIAL,
     user_id INTEGER,
     crypto_pair VARCHAR(12) NOT NULL,
-    date DATE NOT NULL,
+    timestamp DATE NOT NULL,
     transaction_type VARCHAR(7) NOT NULl,
     amount NUMERIC(22,10) NOT NULL,
     price NUMERIC(22,10) NOT NULL,

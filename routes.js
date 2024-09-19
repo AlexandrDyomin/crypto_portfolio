@@ -8,6 +8,9 @@ const PROTOCOL = process.env.PROTOCOL;
 const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 
+var pairs = getAllPairs();
+setInterval(() => pairs = getAllPairs(), 86400000);
+
 var routes = {
     '/': decorate(async function sendIndexPage(req, res) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -63,17 +66,19 @@ var routes = {
             return result.rows;
         }
     }),
-    '/transaction_form': decorate(function sendTransactioForm(req, res) {
+    '/transaction_form': decorate(async function sendTransactioForm(req, res) {
         var url = new URL(req.url, `http://${HOST}:${PORT}`);
         if (url.search) {
             var values = parseSearchParm(url);
             var title = 'Изменить тарнзакцию';
             var pathname = '/edit_transaction'
         } else {
-            values = {};
+            values = { date: new Date().toISOString().replace('T', ' ').slice(0, -8)};
             title = 'Добавить тарнзакцию';
             pathname = '/add_transaction'
         }
+
+        values.pairs = await pairs;
         var h1 = title;
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./transaction_form/index.pug', { 
@@ -459,7 +464,7 @@ function formatDataForView(rows) {
         row.date = formatterDates.format(row.date);
         ['amount', 'price', 'sum'].forEach((prop) => {
             row[prop] = parseFloat(row[prop]).toString();
-        })
+        });
     });
 }
 
@@ -473,9 +478,22 @@ function parseSearchParm(url) {
 }
 
 function formatDataForDB(data) {
+    data['crypto-pair'] = data['crypto-pair'].toUpperCase();
     data.amount = parseFloat(data.amount);
     data.price = parseFloat(data.price);
     data.id && (data.id = parseInt(data.id));
+}
+
+async function getAllPairs() {
+    var response = await fetch('https://api.binance.com/api/v3/ticker/price');
+    var data = await response.json();
+    var coinsList = ['USDT', 'USDC', 'TUSD', 'FDUSDT', 'BNB', 'BTC', 'ETH', 'DAI', 'XRP', 'DOGE', 'AEUR', 'EURI'];
+    var regExp = new RegExp(`(${coinsList.join('|')})$`);
+    var result = data.map((item) => {
+        var overlap = item.symbol.match(regExp)?.[0];
+        return overlap ? item.symbol.replace(overlap, `/${overlap}`) : item.symbol;
+    });
+    return result;
 }
 
 export default routes;

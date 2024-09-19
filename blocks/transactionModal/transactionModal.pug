@@ -7,9 +7,12 @@ mixin transactionModal(values = {})
     form.transaction-modal(action=pathname method="GET")
         .transaction-fields
             label(for="crypto-pair") Пара
-            input#crypto-pair(type="text", name="crypto-pair", value=values["crypto-pair"] ? values["crypto-pair"] : "" required)
+            input#crypto-pair(type="text" list="pairs" name="crypto-pair", value=values["crypto-pair"] ? values["crypto-pair"] : "" required)
+            datalist#pairs
+                each pair in values.pairs 
+                    option(value=pair)
             label(for="date") Дата
-            input#date(type="date", name="date", value=values.date ? values.date : "" required)
+            input#date(type="datetime-local", name="date", value=values.date ? values.date : "" required)
             label(for="amount") Количество
             input#amount(type="number", name="amount", value=values.amount ? values.amount : "" step="0.00001" required)
             label(for="price") Цена
