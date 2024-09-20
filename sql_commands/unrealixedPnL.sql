@@ -51,7 +51,11 @@ FROM avg_purchase_price1
 LEFT JOIN avg_purchase_price2 USING(crypto_pair);
 
 
-CREATE temporary TABLE IF NOT EXISTS current_prices(crypto_pair VARCHAR(12) NOT NULL, price NUMERIC(22,10) NOT NULL, PRIMARY KEY (crypto_pair));
+CREATE temporary TABLE IF NOT EXISTS current_prices(
+    crypto_pair VARCHAR(12) NOT NULL, 
+    price NUMERIC(22,10) NOT NULL, 
+    PRIMARY KEY (crypto_pair)
+);
 
 INSERT INTO current_prices (crypto_pair, price) 
 values('BTC/USDT', 59000), ('SOL/USDT', 12), ('SUI/USDT', 1.858);
@@ -67,5 +71,6 @@ SELECT crypto_pair,  rest_of_coins.amount, avg_purchase_price.price AS avg_purch
 FROM rest_of_coins 
 JOIN avg_purchase_price using(crypto_pair) 
 JOIN current_prices USING(crypto_pair) 
-JOIN profit using(crypto_pair);
+JOIN profit using(crypto_pair)
+ORDER BY sum DESC;
 

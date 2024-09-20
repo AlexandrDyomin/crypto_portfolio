@@ -8,8 +8,10 @@ const PROTOCOL = process.env.PROTOCOL;
 const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 
-var pairs = getAllPairs();
-setInterval(() => pairs = getAllPairs(), 86400000);
+var pairs = [];
+// setInterval(function updatePairs() {
+//     pairs = getAllPairs(), 86400000
+// });
 
 var routes = {
     '/': decorate(async function sendIndexPage(req, res) {
@@ -91,9 +93,10 @@ var routes = {
     }),
     '/unrealizedPnL': decorate(async function sendUnrealizedPnL(req, res) {
         var rows = await getRows(this.userId);
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         formatDataPnLForView(rows);
-        dropTmpTbales('total_purchased', 'total_sold', 'rest_of_coins', 'delta', 'avg_purchase_price', 'current_prices', 'profit');
+        dropTmpTbales('total_purchased', 'total_sold', 'rest_of_coins', 'avg_purchase_price1', 'avg_purchase_price2', 'avg_purchase_price', 'current_prices', 'profit');
+        
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./unrealizedPnL/index.pug', { 
             cache: true,
             title: 'Нереализованная прибыль(убыток)',
@@ -102,80 +105,38 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            var result = await makeReqToDb([[
-                "CREATE temporary TABLE IF NOT EXISTS total_purchased as select crypto_pair, sum(amount) as amount from transactions WHERE transaction_type = 'покупка' and user_id = $1 GROUP BY crypto_pair", 
-                [userId]
-            ], [
-                "CREATE temporary TABLE IF NOT EXISTS total_sold as select crypto_pair, sum(amount) as amount from transactions WHERE transaction_type = 'продажа' and user_id = $1 GROUP BY crypto_pair",
-                [userId]
-            ], [
-                'CREATE temporary TABLE IF NOT EXISTS rest_of_coins as select crypto_pair, coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) as amount FROM total_purchased left join total_sold using(crypto_pair) WHERE coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) > 0'
-            ], [
-                `CREATE temporary TABLE IF NOT EXISTS delta as SELECT crypto_pair, CASE WHEN avg_sold_price > avg_purchase_price AND total_sold > (total_purchased - total_sold) THEN (((total_sold * avg_sold_price) - (total_sold * avg_purchase_price)) / total_sold) ELSE 0 END as delta
-
-                FROM (
-
-                SELECT crypto_pair, total_purchased.amount as total_purchased, sum(transactions.amount /total_purchased.amount * price) as avg_purchase_price
-
-                FROM transactions JOIN (
-
-                SELECT crypto_pair, sum(amount) as amount
-
-                FROM transactions
-
-                WHERE transaction_type = 'покупка' and user_id = $1
-
-                GROUP BY crypto_pair
-
-                ) total_purchased
-
-                USING(crypto_pair)
-
-                WHERE transaction_type = 'покупка'
-
-                GROUP BY crypto_pair, total_purchased
-
-                ) t1
-
-                JOIN (
-
-                SELECT crypto_pair, total_sold.amount as total_sold, sum(transactions.amount /total_sold.amount * price) as avg_sold_price
-
-                FROM transactions JOIN (
-
-                SELECT crypto_pair, sum(amount) as amount
-
-                FROM transactions
-
-                WHERE transaction_type = 'продажа' and user_id = $1
-
-                GROUP BY crypto_pair
-
-                ) total_sold
-
-                USING(crypto_pair)
-
-                WHERE transaction_type = 'продажа'
-
-                GROUP BY crypto_pair, total_sold
-                ) t2
-                USING(crypto_pair)
-                JOIN rest_of_coins
-                USING(crypto_pair)`,
-                [userId]
-            ], [
-                "CREATE temporary TABLE IF NOT EXISTS avg_purchase_price as select crypto_pair, sum(amount * price) / sum(amount) + delta as price  FROM transactions  JOIN delta USING(crypto_pair) WHERE transaction_type = 'покупка' and user_id = $1 group BY crypto_pair, delta",
-                [userId]
-            ], [
-                'CREATE temporary TABLE IF NOT EXISTS current_prices(crypto_pair VARCHAR(12) NOT NULL, price NUMERIC(22,10) NOT NULL, PRIMARY KEY (crypto_pair))'
-            ], [
-                "insert into current_prices (crypto_pair, price) values('BTC/USDT', 59000), ('SOL/USDT', 12), ('SUI/USDT', 1.858)"
-            ], [
-                'CREATE temporary TABLE IF NOT EXISTS profit as select crypto_pair, ROUND((current_prices.price / avg_purchase_price.price  - 1) * 100, 2) as profit_in_percentage, ROUND((current_prices.price / avg_purchase_price.price -1) * avg_purchase_price.price * rest_of_coins.amount, 2) as profit FROM current_prices join avg_purchase_price using(crypto_pair) join rest_of_coins using(crypto_pair)'
-            ], [
-                "select crypto_pair,  rest_of_coins.amount, avg_purchase_price.price as avg_purchase_price, rest_of_coins.amount * avg_purchase_price.price as sum, current_prices.price as current_price, profit_in_percentage || '% | ' || profit FROM rest_of_coins join avg_purchase_price using(crypto_pair) join current_prices USING(crypto_pair) join profit using(crypto_pair)"
-            ]]);
-            return result.rows;
+            var req = requests.getUnrealizedPnL.map((item) => {
+                var r = [item[0]];
+                if (item[1]) {
+                    r[1] = [userId];
+                }
+                return r;
+            });
+            
+            var pairs = (await makeReqToDb([
+                req[0], 
+                req[1], 
+                req[2], 
+                ['SELECT crypto_pair FROM rest_of_coins']
+            ])).rows;
+            var prices = pairs.map(async ({ crypto_pair }) => {
+                var res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${crypto_pair.replace('/', '')}`);
+                var data = await res.json();
+                return `('${crypto_pair}', ${data.price})`
+            });
+            
+            return Promise.allSettled(prices)
+                .then(async results => {
+                    var data = results.reduce((acc, item) => {
+                        if (item.status === 'fulfilled') {
+                            acc.push(item.value)
+                            return acc;
+                        }
+                    }, []);
+                    req[7][0] += data.join();
+                    var result = await makeReqToDb(req);
+                    return result.rows;
+            });
         }
 
         function formatDataPnLForView(rows) {
@@ -188,7 +149,7 @@ var routes = {
     }),
     '/realizedPnL': decorate(async function sendRealizedPnL(req, res) {
         var rows = await getRows(this.userId);
-        dropTmpTbales('last_date_of_sale', 'total_purchased', 'avg_purchase_price', 'total_sold', 'avg_sold_price')
+        dropTmpTbales('last_date_of_sale', 'total_purchased', 'avg_purchase_price', 'total_sold', 'avg_sold_price');
         formatDataPnLForView(rows);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./realizedPnL/index.pug', { 
@@ -206,7 +167,7 @@ var routes = {
                 }
                 return r;
             });
-            var result = await makeReqToDb(req, [userId]);
+            var result = await makeReqToDb(req);
             return result.rows;
         }
 
@@ -485,15 +446,20 @@ function formatDataForDB(data) {
 }
 
 async function getAllPairs() {
-    var response = await fetch('https://api.binance.com/api/v3/ticker/price');
-    var data = await response.json();
-    var coinsList = ['USDT', 'USDC', 'TUSD', 'FDUSDT', 'BNB', 'BTC', 'ETH', 'DAI', 'XRP', 'DOGE', 'AEUR', 'EURI'];
-    var regExp = new RegExp(`(${coinsList.join('|')})$`);
-    var result = data.map((item) => {
-        var overlap = item.symbol.match(regExp)?.[0];
-        return overlap ? item.symbol.replace(overlap, `/${overlap}`) : item.symbol;
-    });
-    return result;
+    try {
+        var response = await fetch('https://api.binance.com/api/v3/ticker/price');
+        var data = await response.json();
+        var coinsList = ['USDT', 'USDC', 'TUSD', 'FDUSDT', 'BNB', 'BTC', 'ETH', 'DAI', 'XRP', 'DOGE', 'AEUR', 'EURI'];
+        var regExp = new RegExp(`(${coinsList.join('|')})$`);
+        var result = data.map((item) => {
+            var overlap = item.symbol.match(regExp)?.[0];
+            return overlap ? item.symbol.replace(overlap, `/${overlap}`) : item.symbol;
+        });
+        return result;    
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
 }
 
 export default routes;
