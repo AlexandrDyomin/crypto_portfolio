@@ -120,23 +120,33 @@ var routes = {
                 ['SELECT crypto_pair FROM rest_of_coins']
             ])).rows;
             var prices = pairs.map(async ({ crypto_pair }) => {
-                var res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${crypto_pair.replace('/', '')}`);
-                var data = await res.json();
-                return `('${crypto_pair}', ${data.price})`
+                return fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${crypto_pair.replace('/', '')}`);
+                    // .then((response) => {
+                    //     if (response.status === 'fulfilled') {
+                    //         return response.value.json();
+                    //     }
+                    //     return response
+                    //         .filter((item) => item.status === 'fulfilled')
+                    //         .map((item) => item.value.json());
+                    // });
             });
             
             return Promise.allSettled(prices)
-                .then(async results => {
-                    var data = results.reduce((acc, item) => {
-                        if (item.status === 'fulfilled') {
-                            acc.push(item.value)
-                            return acc;
-                        }
-                    }, []);
-                    req[7][0] += data.join();
-                    var result = await makeReqToDb(req);
-                    return result.rows;
-            });
+                .then((response) => {
+                    return response
+                        .filter((item) => item.status === 'fulfilled')
+                        .map((item) => item.value.json());
+                })
+                .then(async (data) => {
+                    const result_1 = await Promise.allSettled(data);
+                    const result_2 = result_1
+                        .filter((item) => item.status === 'fulfilled')
+                        .map((item) => `('${formatPairForView(item.value.symbol)}', ${item.value.price})`);
+                    
+                    req[7][0] += result_2.join();
+                    var res = await makeReqToDb(req);
+                    return res.rows;
+                });
         }
 
         function formatDataPnLForView(rows) {
@@ -460,6 +470,13 @@ async function getAllPairs() {
         console.error(error);
         return [];
     }
+}
+
+function formatPairForView(str) {
+    var coinsList = ['USDT', 'USDC', 'TUSD', 'FDUSDT', 'BNB', 'BTC', 'ETH', 'DAI', 'XRP', 'DOGE', 'AEUR', 'EURI'];
+    var regExp = new RegExp(`(${coinsList.join('|')})$`);
+    var overlap = str.match(regExp)?.[0];
+    return overlap ? str.replace(overlap, `/${overlap}`) : str;
 }
 
 export default routes;
