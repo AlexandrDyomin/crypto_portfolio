@@ -24,37 +24,42 @@ export default {
             FROM total_purchased 
             LEFT JOIN total_sold using(crypto_pair) 
             WHERE coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) > 0`
-        ] ,[
-            `CREATE temporary TABLE IF NOT EXISTS avg_purchase_price1 AS 
-            SELECT crypto_pair, (sum(amount) - coalesce((select amount FROM total_sold), 0)) AS amount, sum(amount * price) / sum(amount) AS price  
-            FROM transactions  
-            WHERE transaction_type = 'покупка' AND user_id = $1 AND date <= coalesce((
-                SELECT max(date) 
-                FROM transactions
-                WHERE transaction_type = 'продажа' AND user_id = $1
-            ), (SELECT max(date) FROM transactions WHERE transaction_type = 'покупка' AND user_id = $1))
+        ] , [
+            `CREATE temporary TABLE IF NOT EXISTS last_date_of_sale AS 
+            SELECT crypto_pair, max(date) AS last_date_of_sale
+            FROM transactions
+            WHERE transaction_type = 'продажа' AND user_id = $1
             GROUP BY crypto_pair`,
+            []
+        ], [
+            `CREATE temporary TABLE IF NOT EXISTS last_date AS 
+            SELECT crypto_pair, max(date) AS last_date
+            FROM transactions
+            LEFT JOIN last_date_of_sale USING(crypto_pair)
+            WHERE transaction_type = 'покупка' AND user_id = $1 AND last_date_of_sale IS NULL
+            GROUP BY crypto_pair`,
+            []    
+        ],[
+            `CREATE temporary TABLE IF NOT EXISTS avg_purchase_price1 AS 
+            SELECT crypto_pair, rest_of_coins.amount AS amount, sum(transactions.amount * transactions.price) / sum(transactions.amount) AS price  
+            FROM transactions
+            JOIN rest_of_coins USING(crypto_pair)
+            LEFT JOIN last_date_of_sale USING(crypto_pair)
+            WHERE transaction_type = 'покупка' AND user_id = $1 AND date <= last_date_of_sale
+            GROUP BY crypto_pair, rest_of_coins.amount`,
             []
         ], [
             `CREATE temporary TABLE IF NOT EXISTS avg_purchase_price2 AS 
             SELECT crypto_pair, sum(amount) AS amount, sum(amount * price) / sum(amount) AS price  
-            FROM transactions  
-            WHERE transaction_type = 'покупка' AND user_id = $1 AND date > (
-                SELECT max(date) 
-                FROM transactions
-                WHERE transaction_type = 'продажа' AND user_id = $1
-            )
+            FROM transactions
+            LEFT JOIN last_date USING(crypto_pair)  
+            WHERE transaction_type = 'покупка' AND user_id = $1 AND date <= last_date
             GROUP BY crypto_pair`,
             []
         ], [
             `CREATE temporary TABLE IF NOT EXISTS avg_purchase_price AS 
-            SELECT crypto_pair, CASE WHEN EXISTS(
-                SELECT amount FROM avg_purchase_price2
-            ) THEN (avg_purchase_price1.amount * avg_purchase_price1.price / (avg_purchase_price1.amount + avg_purchase_price2.amount)) + (avg_purchase_price2.amount * avg_purchase_price2.price / (avg_purchase_price1.amount + avg_purchase_price2.amount)) 
-            WHEN NOT EXISTS(
-                SELECT amount FROM avg_purchase_price2
-            ) THEN avg_purchase_price1.price END AS price 
-            FROM avg_purchase_price1
+            SELECT crypto_pair,  coalesce(avg_purchase_price1.amount * avg_purchase_price1.price / (avg_purchase_price1.amount + avg_purchase_price2.amount) + (avg_purchase_price2.amount * avg_purchase_price2.price / (avg_purchase_price1.amount + avg_purchase_price2.amount)) , avg_purchase_price1.price, avg_purchase_price2.price) as price FROM rest_of_coins
+            LEFT JOIN avg_purchase_price1 USING(crypto_pair)
             LEFT JOIN avg_purchase_price2 USING(crypto_pair)`
         ], [
             `CREATE temporary TABLE IF NOT EXISTS current_prices(
@@ -121,7 +126,7 @@ export default {
             GROUP BY crypto_pair`,
             []
         ], [
-            `SELECT crypto_pair, total_sold, avg_sold_price, total_sold * avg_sold_price AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((total_sold * avg_sold_price) - (total_sold * avg_purchase_price), 2) as profit
+            `SELECT crypto_pair, total_sold, avg_sold_price, total_sold * avg_sold_price AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((avg_sold_price - avg_purchase_price) * total_sold, 2) as profit
             FROM total_sold
             JOIN avg_sold_price USING(crypto_pair)
             JOIN avg_purchase_price USING(crypto_pair)`

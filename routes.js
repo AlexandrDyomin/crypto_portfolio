@@ -9,9 +9,9 @@ const HOST = process.env.HOST;
 const PORT = process.env.PORT;
 
 var pairs = [];
-// setInterval(function updatePairs() {
-//     pairs = getAllPairs(), 86400000
-// });
+setInterval(function updatePairs() {
+    pairs = getAllPairs();
+}, 86400000);
 
 var routes = {
     '/': decorate(async function sendIndexPage(req, res) {
@@ -94,7 +94,7 @@ var routes = {
     '/unrealizedPnL': decorate(async function sendUnrealizedPnL(req, res) {
         var rows = await getRows(this.userId);
         formatDataPnLForView(rows);
-        dropTmpTbales('total_purchased', 'total_sold', 'rest_of_coins', 'avg_purchase_price1', 'avg_purchase_price2', 'avg_purchase_price', 'current_prices', 'profit');
+        dropTmpTbales('total_purchased', 'total_sold', 'last_date_of_sale', 'last_date', 'rest_of_coins', 'avg_purchase_price1', 'avg_purchase_price2', 'avg_purchase_price', 'current_prices', 'profit');
         
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./unrealizedPnL/index.pug', { 
@@ -119,31 +119,29 @@ var routes = {
                 req[2], 
                 ['SELECT crypto_pair FROM rest_of_coins']
             ])).rows;
-            var prices = pairs.map(async ({ crypto_pair }) => {
-                return fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${crypto_pair.replace('/', '')}`);
-                    // .then((response) => {
-                    //     if (response.status === 'fulfilled') {
-                    //         return response.value.json();
-                    //     }
-                    //     return response
-                    //         .filter((item) => item.status === 'fulfilled')
-                    //         .map((item) => item.value.json());
-                    // });
+
+            var prices = pairs.map(async ({ crypto_pair }, i) => {
+                return fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${crypto_pair.replace('/', '')}`)
+                    .then((response) => {
+                        return response.json();
+                    })
+                    .then((data) => {
+                        return `('${formatPairForView(data.symbol)}', ${data.price})`;
+                    })
+                    .catch((error) => {
+                        throw Error(`Ошибка при выполнении запроса цены для ${crypto_pair}`)
+                    });
             });
             
             return Promise.allSettled(prices)
-                .then((response) => {
-                    return response
-                        .filter((item) => item.status === 'fulfilled')
-                        .map((item) => item.value.json());
-                })
                 .then(async (data) => {
-                    const result_1 = await Promise.allSettled(data);
-                    const result_2 = result_1
+                    var reqPart = data
                         .filter((item) => item.status === 'fulfilled')
-                        .map((item) => `('${formatPairForView(item.value.symbol)}', ${item.value.price})`);
+                        .map((item) => item.value).join();
+                    if (!reqPart) return []; 
                     
-                    req[7][0] += result_2.join();
+                    req[9][0] += reqPart;
+                    // req[7][0] += `('BONK/USDT', 0.00001771)`
                     var res = await makeReqToDb(req);
                     return res.rows;
                 });
@@ -459,15 +457,11 @@ async function getAllPairs() {
     try {
         var response = await fetch('https://api.binance.com/api/v3/ticker/price');
         var data = await response.json();
-        var coinsList = ['USDT', 'USDC', 'TUSD', 'FDUSDT', 'BNB', 'BTC', 'ETH', 'DAI', 'XRP', 'DOGE', 'AEUR', 'EURI'];
-        var regExp = new RegExp(`(${coinsList.join('|')})$`);
         var result = data.map((item) => {
-            var overlap = item.symbol.match(regExp)?.[0];
-            return overlap ? item.symbol.replace(overlap, `/${overlap}`) : item.symbol;
+            return formatPairForView(item.symbol)
         });
         return result;    
     } catch (error) {
-        console.error(error);
         return [];
     }
 }
