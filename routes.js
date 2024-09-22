@@ -141,7 +141,6 @@ var routes = {
                     if (!reqPart) return []; 
                     
                     req[9][0] += reqPart;
-                    // req[7][0] += `('BONK/USDT', 0.00001771)`
                     var res = await makeReqToDb(req);
                     return res.rows;
                 });

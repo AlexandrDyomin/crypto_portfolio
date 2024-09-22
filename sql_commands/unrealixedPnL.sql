@@ -30,26 +30,28 @@ CREATE temporary TABLE IF NOT EXISTS last_date AS
 SELECT crypto_pair, max(date) AS last_date
 FROM transactions
 LEFT JOIN last_date_of_sale USING(crypto_pair)
-WHERE transaction_type = 'покупка' AND user_id = 22 AND last_date_of_sale IS NULL
-GROUP BY crypto_pair;
+WHERE transaction_type = 'покупка' AND user_id = 22
+GROUP BY crypto_pair, last_date_of_sale
+HAVING (last_date_of_sale IS NULL OR max(date) > last_date_of_sale);
 
 CREATE temporary TABLE IF NOT EXISTS avg_purchase_price1 AS 
-SELECT crypto_pair, rest_of_coins.amount AS amount, sum(transactions.amount * transactions.price) / sum(transactions.amount) AS price  
+SELECT crypto_pair, sum(amount) AS amount, sum(amount * price) / sum(amount) AS price  
 FROM transactions
-JOIN rest_of_coins USING(crypto_pair)
 LEFT JOIN last_date_of_sale USING(crypto_pair)
 WHERE transaction_type = 'покупка' AND user_id = 22 AND date <= last_date_of_sale
-GROUP BY crypto_pair, rest_of_coins.amount;
+GROUP BY crypto_pair;
 
 CREATE temporary TABLE IF NOT EXISTS avg_purchase_price2 AS 
 SELECT crypto_pair, sum(amount) AS amount, sum(amount * price) / sum(amount) AS price  
 FROM transactions
 LEFT JOIN last_date USING(crypto_pair)  
-WHERE transaction_type = 'покупка' AND user_id = 22 AND date <= last_date
+LEFT JOIN last_date_of_sale USING(crypto_pair)
+WHERE transaction_type = 'покупка' AND user_id = 22 AND (date <= last_date AND date > last_date_of_sale) OR last_date_of_sale IS NULL
 GROUP BY crypto_pair;
 
 CREATE temporary TABLE IF NOT EXISTS avg_purchase_price AS 
-SELECT crypto_pair,  coalesce(avg_purchase_price1.amount * avg_purchase_price1.price / (avg_purchase_price1.amount + avg_purchase_price2.amount) + (avg_purchase_price2.amount * avg_purchase_price2.price / (avg_purchase_price1.amount + avg_purchase_price2.amount)) , avg_purchase_price1.price, avg_purchase_price2.price) as price FROM rest_of_coins
+SELECT crypto_pair,  coalesce((rest_of_coins.amount - avg_purchase_price2.amount) * avg_purchase_price1.price / ((rest_of_coins.amount - avg_purchase_price2.amount) + avg_purchase_price2.amount) + (avg_purchase_price2.amount * avg_purchase_price2.price / ((rest_of_coins.amount - avg_purchase_price2.amount) + avg_purchase_price2.amount)) , avg_purchase_price1.price, avg_purchase_price2.price) as price 
+FROM rest_of_coins
 LEFT JOIN avg_purchase_price1 USING(crypto_pair)
 LEFT JOIN avg_purchase_price2 USING(crypto_pair);
 
