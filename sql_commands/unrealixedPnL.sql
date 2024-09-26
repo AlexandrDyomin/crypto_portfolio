@@ -14,10 +14,10 @@ GROUP BY crypto_pair;
 
 -- всего осталось монет
 CREATE temporary TABLE IF NOT EXISTS rest_of_coins AS 
-SELECT crypto_pair, coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) AS amount 
+SELECT crypto_pair, coalesce(total_purchased.amount - total_sold.amount, total_purchased.amount) AS amount 
 FROM total_purchased 
 LEFT JOIN total_sold using(crypto_pair) 
-WHERE coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) > 0;
+WHERE coalesce(total_purchased.amount - total_sold.amount, total_purchased.amount) > 0;
 
 -- последняя дата продажи
 CREATE temporary TABLE IF NOT EXISTS last_date_of_sale AS 

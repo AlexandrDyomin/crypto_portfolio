@@ -192,9 +192,10 @@ var routes = {
     '/auth': authenticate,
     '/add_transaction': decorate(async function save(req, res) {
         var url = new URL(req.url, `http://${HOST}:${PORT}`);
-        var data = {userId: this.userId, ...parseSearchParm(url)};
+        var data = { userId: this.userId, ...parseSearchParm(url) };
         formatDataForDB(data);
         var rowCount = await insert(data);
+        updateWallet(data);
         rowCount ? 
             redirect(res, '/transactions') : 
             sendErrorPage(res, new Error('Не удалось сохранить данные'));
@@ -206,7 +207,17 @@ var routes = {
                 [userId, cryptoPair, date, type, amount, price]
             );
             return result.rowCount;
-        }  
+        }    
+        
+        async function updateWallet({ userId, 'crypto-pair': cryptoPair, amount, type}) {
+            amount = (type === 'продажа' || type === 'перевод') ? amount * -1 : amount;
+            cryptoPair = cryptoPair.replace(/\/\w+/, '');
+            var result = await makeReqToDb(
+                requests.updateWallet, 
+                [userId, cryptoPair, amount]
+            );
+            return result.rowCount;
+        }
     }),
     '/remove_transaction': decorate(async function remove(req, res) {
         var id = new URL(req.url, `http://${HOST}:${PORT}`)

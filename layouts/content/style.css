@@ -8,7 +8,7 @@ html {
 }
 
 .page {
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 4rem;
     font-size: 1.6rem;
     background-color: #ffa700;
     min-height: 100vh;

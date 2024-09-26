@@ -20,10 +20,10 @@ export default {
             []
         ], [
             `CREATE temporary TABLE IF NOT EXISTS rest_of_coins AS 
-            SELECT crypto_pair, coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) AS amount 
+            SELECT crypto_pair, coalesce(total_purchased.amount - total_sold.amount, total_purchased.amount) AS amount 
             FROM total_purchased 
             LEFT JOIN total_sold using(crypto_pair) 
-            WHERE coalesce(abs(total_sold.amount - total_purchased.amount), total_purchased.amount) > 0`
+            WHERE coalesce(total_purchased.amount - total_sold.amount, total_purchased.amount) > 0`
         ] , [
             `CREATE temporary TABLE IF NOT EXISTS last_date_of_sale AS 
             SELECT crypto_pair, max(date) AS last_date_of_sale
@@ -150,7 +150,11 @@ export default {
                 VALUES ($1, $2)`,
     getUserId: `SELECT user_id 
                 FROM sessions 
-                WHERE session_id = $1`
+                WHERE session_id = $1`,
+    updateWallet: `INSERT INTO wallets (user_id, ticker, amount)
+                VALUES($1, $2, $3)
+                ON CONFLICT (user_id, ticker) DO UPDATE
+                SET amount = wallets.amount + $3`
 };
 
 
