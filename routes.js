@@ -64,7 +64,7 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            var result = await makeReqToDb(requests.getTransactions, [userId]);
+            var result = await makeReqToDb(requests.getTransactions, userId);
             return result.rows;
         }
     }),
@@ -105,20 +105,20 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            var req = requests.getUnrealizedPnL.map((item) => {
-                var r = [item[0]];
-                if (item[1]) {
-                    r[1] = [userId];
-                }
-                return r;
-            });
+            // var req = requests.getUnrealizedPnL.map((item) => {
+            //     var r = [item[0]];
+            //     if (item[1]) {
+            //         r[1] = [userId];
+            //     }
+            //     return r;
+            // });
             
             var pairs = (await makeReqToDb([
-                req[0], 
-                req[1], 
-                req[2], 
-                ['SELECT crypto_pair FROM rest_of_coins']
-            ])).rows;
+                requests.getUnrealizedPnL[0], 
+                requests.getUnrealizedPnL[1], 
+                requests.getUnrealizedPnL[2], 
+                'SELECT crypto_pair FROM rest_of_coins'
+            ], [userId], [userId])).rows;
 
             var prices = pairs.map(async ({ crypto_pair }, i) => {
                 return fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${crypto_pair.replace('/', '')}`)
@@ -139,9 +139,9 @@ var routes = {
                         .filter((item) => item.status === 'fulfilled')
                         .map((item) => item.value).join();
                     if (!reqPart) return []; 
-                    
-                    req[9][0] += reqPart;
-                    var res = await makeReqToDb(req);
+                    var req = requests.getUnrealizedPnL.map((item) => item);
+                    req[9] += reqPart;
+                    var res = await makeReqToDb(req, [userId], [userId], undefined, [userId], [userId], [userId], [userId]);
                     return res.rows;
                 });
         }
@@ -157,6 +157,7 @@ var routes = {
     '/realizedPnL': decorate(async function sendRealizedPnL(req, res) {
         var rows = await getRows(this.userId);
         dropTmpTbales('last_date_of_sale', 'total_purchased', 'avg_purchase_price', 'total_sold', 'avg_sold_price');
+        
         formatDataPnLForView(rows);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./realizedPnL/index.pug', { 
@@ -167,14 +168,7 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            var req = requests.getRealizedPnL.map((item) => {
-                var r = [item[0]];
-                if (item[1]) {
-                    r[1] = [userId];
-                }
-                return r;
-            });
-            var result = await makeReqToDb(req);
+            var result = await makeReqToDb(requests.getRealizedPnL, [userId], [userId], [userId], [userId], [userId]);
             return result.rows;
         }
 
@@ -195,17 +189,13 @@ var routes = {
         var data = { userId: this.userId, ...parseSearchParm(url) };
         formatDataForDB(data);
         var rowCount = await insert(data);
-        updateWallet(data);
         rowCount ? 
             redirect(res, '/transactions') : 
             sendErrorPage(res, new Error('Не удалось сохранить данные'));
 
         async function insert(data) {
             var { userId, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
-            var result = await makeReqToDb(
-                requests.insertTransaction, 
-                [userId, cryptoPair, date, type, amount, price]
-            );
+            var result = await makeReqToDb(requests.insertTransaction, [userId, cryptoPair, date, type, amount, price], [userId, cryptoPair.replace(/\/\w+/, ''), amount, type]);
             return result.rowCount;
         }    
         
@@ -288,7 +278,7 @@ function decorate(fn) {
 
 function dropTmpTbales(...tableNames) {
     var requests = tableNames.
-        map((tableName, i, arr) => arr[i] = [`DROP TABLE IF EXISTS ${tableName}`]);
+        map((tableName, i, arr) => arr[i] = `DROP TABLE IF EXISTS ${tableName}`);
     makeReqToDb(requests);
 }
 
@@ -408,15 +398,15 @@ function redirect(res, location, headers = {}) {
     res.end();
 }
 
-async function makeReqToDb(query, ...values) {
+async function makeReqToDb(queries, ...values) {
     try {
         var client = await pool.connect();
         await client.query('BEGIN');
-        if (typeof query === 'string') {
-            var result = await client.query(query, values.flat());
-        } else if (Array.isArray(query)) {
-            query.forEach(async (q) => {
-                result = await client.query(q[0], q[1]?.flat());
+        if (typeof queries === 'string') {
+            var result = await client.query(queries, values.length ? values.flat() : undefined);
+        } else if (Array.isArray(queries)) {
+            queries.forEach(async (query, i) => {
+                result = await client.query(query, values[i]?.flat());
             });
         }
         await client.query('COMMIT');
