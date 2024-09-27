@@ -15,13 +15,23 @@ setInterval(function updatePairs() {
 
 var routes = {
     '/': decorate(async function sendIndexPage(req, res) {
+        var rows = await getRows(this.userId);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(renderFile('./index.pug', { 
             cache: true,
             title: 'Кошелёк',
             h1: 'Кошелёк',
-            rows: [{ ticker: 'btc', amount: 12 }]
+            rows: formatData(rows)
         }));
+
+        async function getRows(userId) {
+            var result = await makeReqToDb(requests.getWallet, userId);
+            return result.rows;
+        }
+
+        function formatData(data) {
+            return data.map((item) => ({ ticker: item.ticker, amount: parseFloat(item.amount).toString() }));
+        }
     }),
     '/login': decorate(async function sendLoginPage(req, res){
         res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
@@ -105,14 +115,6 @@ var routes = {
         }));
 
         async function getRows(userId) {
-            // var req = requests.getUnrealizedPnL.map((item) => {
-            //     var r = [item[0]];
-            //     if (item[1]) {
-            //         r[1] = [userId];
-            //     }
-            //     return r;
-            // });
-            
             var pairs = (await makeReqToDb([
                 requests.getUnrealizedPnL[0], 
                 requests.getUnrealizedPnL[1], 

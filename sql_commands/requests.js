@@ -117,7 +117,6 @@ export default {
     insertTransaction: [
         `INSERT INTO transactions(user_id, crypto_pair, date, transaction_type, amount, price) 
         VALUES($1, $2, $3, $4, $5, $6)`,
-
         `INSERT INTO wallets (user_id, ticker, amount)
         VALUES($1, $2, CASE WHEN $4 = 'покупка' THEN $3 ELSE $3 * -1 END )
         ON CONFLICT (user_id, ticker) DO UPDATE
@@ -136,7 +135,10 @@ export default {
                 VALUES ($1, $2)`,
     getUserId: `SELECT user_id 
                 FROM sessions 
-                WHERE session_id = $1`
+                WHERE session_id = $1`,
+    getWallet: `SELECT ticker, amount
+                FROM wallets
+                WHERE user_id = $1`
 };
 
 

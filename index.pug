@@ -11,20 +11,10 @@ block content
         .table-container
             table.info 
                 thead 
-                    - var thead = ['Пара', 'Количество', 'Средняя цена покупки', 'Сумма', 'Текущая цена', 'Изменение цены'];
-                    - var subHeads = ['1d', '1w', '1M', '1Y', 'с момента покупки']
+                    - var thead = ['Тикер', 'Количество'];
                     tr.headers
-                        - var lastIndex = thead.length - 1
                         each head, i in thead
-                            if i < lastIndex
-                                th(rowspan="2") #{head}
-                            else 
-                                th(colspan="5")  #{head}
-                    tr.headers
-                        each subHead in subHeads
-                            th #{subHead}
-
-                    
+                            th #{head}
                 tbody 
                     each row in rows
                         +c-row(row)
