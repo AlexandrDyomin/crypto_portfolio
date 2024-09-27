@@ -123,9 +123,33 @@ export default {
         SET amount = CASE WHEN $4 = 'покупка' THEN wallets.amount + $3 ELSE wallets.amount - $3 END`,
     ],
     deleteTransaction: 'DELETE FROM transactions WHERE id=$1',
-    editTransaction: `UPDATE transactions 
-                    SET crypto_pair = $1, date = $2, transaction_type = $3, amount = $4, price = $5
-                    WHERE id = $6`,
+    editTransaction: [
+        `UPDATE transactions 
+        SET crypto_pair = $1, date = $2, transaction_type = $3, amount = $4, price = $5
+        WHERE id = $6`,
+
+        `CREATE temporary TABLE IF NOT EXISTS total_purchased AS 
+        SELECT user_id, crypto_pair, sum(amount) AS amount 
+        FROM transactions 
+        WHERE transaction_type = 'покупка' AND user_id = $1 AND crypto_pair LIKE $2 
+        GROUP BY user_id, crypto_pair`,
+
+        `CREATE temporary TABLE IF NOT EXISTS total_sold AS 
+        SELECT user_id, crypto_pair, sum(amount) AS amount 
+        FROM transactions 
+        WHERE transaction_type = 'продажа' AND user_id = $1 AND crypto_pair LIKE $2
+        GROUP BY user_id, crypto_pair`,
+
+        `CREATE temporary TABLE IF NOT EXISTS rest_of_coins AS 
+        SELECT coalesce(total_purchased.user_id, total_sold.user_id) AS user_id, regexp_replace(crypto_pair,'/.+', '') AS ticker, coalesce(total_purchased.amount - total_sold.amount, total_purchased.amount, total_sold.amount * -1) AS amount 
+        FROM total_purchased 
+        FULL OUTER JOIN total_sold using(crypto_pair)`, 
+
+        `INSERT INTO wallets (user_id, ticker, amount)
+        SELECT * FROM rest_of_coins
+        ON CONFLICT (user_id, ticker) DO UPDATE
+        SET amount = (SELECT amount FROM rest_of_coins)`
+    ],
     insertUser: `INSERT INTO users (login, password) 
                 VALUES ($1, $2)`,
     getUser: `SELECT id, password 
@@ -138,7 +162,7 @@ export default {
                 WHERE session_id = $1`,
     getWallet: `SELECT ticker, amount
                 FROM wallets
-                WHERE user_id = $1`
+                WHERE user_id = $1 AND amount > 0`
 };
 
 

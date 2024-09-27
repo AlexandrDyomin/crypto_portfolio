@@ -200,16 +200,6 @@ var routes = {
             var result = await makeReqToDb(requests.insertTransaction, [userId, cryptoPair, date, type, amount, price], [userId, cryptoPair.replace(/\/\w+/, ''), amount, type]);
             return result.rowCount;
         }    
-        
-        async function updateWallet({ userId, 'crypto-pair': cryptoPair, amount, type}) {
-            amount = (type === 'продажа' || type === 'перевод') ? amount * -1 : amount;
-            cryptoPair = cryptoPair.replace(/\/\w+/, '');
-            var result = await makeReqToDb(
-                requests.updateWallet, 
-                [userId, cryptoPair, amount]
-            );
-            return result.rowCount;
-        }
     }),
     '/remove_transaction': decorate(async function remove(req, res) {
         var id = new URL(req.url, `http://${HOST}:${PORT}`)
@@ -226,18 +216,22 @@ var routes = {
     }),
     '/edit_transaction': decorate(async function edit(req, res) {
         var url = new URL(req.url, `http://${HOST}:${PORT}`);
-        var data = parseSearchParm(url);
+        var data = { userId: this.userId, ...parseSearchParm(url) };
         formatDataForDB(data);
         var rowCount = await update(data);
+        dropTmpTbales('total_purchased', 'total_sold', 'rest_of_coins');
         rowCount ? 
-            redirect(res, '/transactions') : 
-            sendErrorPage(res, new Error('Не удалось сохранить данные'));
+        redirect(res, '/transactions') : 
+        sendErrorPage(res, new Error('Не удалось сохранить данные'));
         
         async function update(data) {
-            var { id, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
+            var { userId, id, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
+            var params = [userId, `${cryptoPair.replace(/\/.+/, '%')}`];
             var result = await makeReqToDb(
                 requests.editTransaction, 
-                [cryptoPair, date, type, amount, price, id]
+                [cryptoPair, date, type, amount, price, id],
+                params,
+                params,
             );
             return result.rowCount;
         }
