@@ -210,7 +210,7 @@ var routes = {
             sendErrorPage(res, new Error('Не удалось сохранить данные'));
 
         async function del(id) {
-            var result = await makeReqToDb(requests.deleteTransaction, [id]);
+            var result = await makeReqToDb(requests.deleteTransaction, [id], [id]);
             return result.rowCount;
         }
     }),

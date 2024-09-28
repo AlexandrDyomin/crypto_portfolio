@@ -2,6 +2,8 @@ extends layouts/content/content.pug
 
 block append styles 
     //- link(rel="stylesheet", href="dist/style.css")
+block append scripts
+    script(type="module", src="script.js" defer) 
 block parts 
     include blocks/c-row/c-row.pug
 block append variables 
@@ -11,7 +13,7 @@ block content
         .table-container
             table.info 
                 thead 
-                    - var thead = ['Тикер', 'Количество'];
+                    - var thead = ['Тикер', 'Количество', 'Стоимость в USDT'];
                     tr.headers
                         each head, i in thead
                             th #{head}

@@ -108,7 +108,7 @@ export default {
         JOIN total_sold USING(crypto_pair)
         WHERE transaction_type = 'продажа' AND user_id = $1
         GROUP BY crypto_pair`,
-        `SELECT crypto_pair, total_sold, avg_sold_price, total_sold * avg_sold_price AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((avg_sold_price - avg_purchase_price) * total_sold, 2) as profit
+        `SELECT crypto_pair, total_sold, avg_sold_price, ROUND(total_sold * avg_sold_price, 2) AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((avg_sold_price - avg_purchase_price) * total_sold, 2) as profit
         FROM total_sold
         JOIN avg_sold_price USING(crypto_pair)
         JOIN avg_purchase_price USING(crypto_pair)`
@@ -122,7 +122,11 @@ export default {
         ON CONFLICT (user_id, ticker) DO UPDATE
         SET amount = CASE WHEN $4 = 'покупка' THEN wallets.amount + $3 ELSE wallets.amount - $3 END`,
     ],
-    deleteTransaction: 'DELETE FROM transactions WHERE id=$1',
+    deleteTransaction: [
+        `UPDATE wallets
+        SET amount = wallets.amount - (SELECT amount FROM transactions WHERE id = $1)`,
+        'DELETE FROM transactions WHERE id = $1'
+    ],
     editTransaction: [
         `UPDATE transactions 
         SET crypto_pair = $1, date = $2, transaction_type = $3, amount = $4, price = $5
