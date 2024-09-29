@@ -197,7 +197,7 @@ var routes = {
 
         async function insert(data) {
             var { userId, 'crypto-pair': cryptoPair, date, type, amount, price } = data;
-            var result = await makeReqToDb(requests.insertTransaction, [userId, cryptoPair, date, type, amount, price], [userId, cryptoPair.replace(/\/\w+/, ''), amount, type]);
+            var result = await makeReqToDb(requests.insertTransaction, [userId, cryptoPair, date, type, amount, price], [userId, cryptoPair.replace(/\/\w+/, ''), type, amount]);
             return result.rowCount;
         }    
     }),

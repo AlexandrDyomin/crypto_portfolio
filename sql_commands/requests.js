@@ -118,13 +118,14 @@ export default {
         `INSERT INTO transactions(user_id, crypto_pair, date, transaction_type, amount, price) 
         VALUES($1, $2, $3, $4, $5, $6)`,
         `INSERT INTO wallets (user_id, ticker, amount)
-        VALUES($1, $2, CASE WHEN $4 = 'покупка' THEN $3 ELSE $3 * -1 END )
+        VALUES($1, $2, CASE WHEN $3 = 'покупка' THEN $4 ELSE $4 * -1::NUMERIC END )
         ON CONFLICT (user_id, ticker) DO UPDATE
-        SET amount = CASE WHEN $4 = 'покупка' THEN wallets.amount + $3 ELSE wallets.amount - $3 END`,
+        SET amount = CASE WHEN $3 = 'покупка' THEN wallets.amount + $4 ELSE wallets.amount - $4 END`,
     ],
     deleteTransaction: [
         `UPDATE wallets
-        SET amount = wallets.amount - (SELECT amount FROM transactions WHERE id = $1)`,
+        SET amount = wallets.amount - CASE WHEN (SELECT transaction_type FROM transactions WHERE id = $1) = 'покупка' THEN (SELECT amount FROM transactions WHERE id = $1) ELSE (SELECT amount FROM transactions WHERE id = $1) * -1 END 
+        WHERE ticker = regexp_replace((SELECT crypto_pair FROM transactions WHERE id = $1),'/.+', '')`,
         'DELETE FROM transactions WHERE id = $1'
     ],
     editTransaction: [
