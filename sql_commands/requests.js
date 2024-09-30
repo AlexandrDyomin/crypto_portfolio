@@ -1,5 +1,5 @@
 export default {
-    getTransactions: `SELECT id, crypto_pair, date, transaction_type, amount, price, amount * price AS sum 
+    getTransactions: `SELECT id, crypto_pair, date, transaction_type, amount, ROUND(price, 7) AS price, ROUND(amount * price, 2) AS sum 
                     FROM transactions 
                     WHERE user_id = $1
                     ORDER BY date DESC`,
@@ -71,7 +71,7 @@ export default {
         JOIN avg_purchase_price using(crypto_pair) 
         JOIN rest_of_coins using(crypto_pair)`,
 
-        `SELECT crypto_pair,  rest_of_coins.amount, avg_purchase_price.price AS avg_purchase_price, rest_of_coins.amount * avg_purchase_price.price AS sum, current_prices.price AS current_price, profit_in_percentage || '% | ' || profit AS profit
+        `SELECT crypto_pair,  rest_of_coins.amount, ROUND(avg_purchase_price.price, 7) AS avg_purchase_price, ROUND(rest_of_coins.amount * avg_purchase_price.price, 2) AS sum, current_prices.price AS current_price, profit_in_percentage || '% | ' || profit AS profit
         FROM rest_of_coins 
         JOIN avg_purchase_price using(crypto_pair) 
         JOIN current_prices USING(crypto_pair) 
@@ -108,7 +108,7 @@ export default {
         JOIN total_sold USING(crypto_pair)
         WHERE transaction_type = 'продажа' AND user_id = $1
         GROUP BY crypto_pair`,
-        `SELECT crypto_pair, total_sold, avg_sold_price, ROUND(total_sold * avg_sold_price, 2) AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((avg_sold_price - avg_purchase_price) * total_sold, 2) as profit
+        `SELECT crypto_pair, total_sold, round(avg_sold_price, 7) AS avg_sold_price, ROUND(total_sold * avg_sold_price, 2) AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((avg_sold_price - avg_purchase_price) * total_sold, 2) as profit
         FROM total_sold
         JOIN avg_sold_price USING(crypto_pair)
         JOIN avg_purchase_price USING(crypto_pair)`

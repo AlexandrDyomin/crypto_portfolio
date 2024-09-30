@@ -50,6 +50,7 @@ h1 {
     overflow: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    padding: 1.5rem;
 }
 
 .table::-webkit-scrollbar {
@@ -74,37 +75,36 @@ table {
     width: max-content;
     border-collapse: collapse;
     margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 0 0 4px black;
 }
 
 thead .headers:last-child {
     border-bottom: 2px solid white;
 }
 
-thead .headers:first-child th:last-child {
-    border-bottom: 1px solid white;
-}
-
-thead:first-child th:not(:last-child) {
-    vertical-align: middle;
-}
-
-thead:first-child th:last-child {
-    text-align: center;
+th {
+    font-weight: 600;
 }
 
 th {
-    font-weight: 600;
+    padding: 1.2rem;
+}
+
+td {
+    padding: 0.7rem 1.5rem;
 }
 
 td {
     font-weight: 400;
 }
 
-th, td {
-    padding: 0.7rem;
+th, 
+td {
     text-align: start;
 }
 
-tbody tr {
+
+tbody tr:not(:last-child) {
     border-bottom: 1px solid white;
 }
