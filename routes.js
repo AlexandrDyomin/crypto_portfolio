@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import pool from './pgPool.js';
 import { generateRandomHexString as generateSessionId, hash, verify } from './cryptography.js';
 import requests from './sql_commands/requests.js';
+import { calcBalance } from './helpers/calcBalance.js';
 
 const PROTOCOL = process.env.PROTOCOL;
 const HOST = process.env.HOST;
@@ -468,5 +469,6 @@ function formatPairForView(str) {
     var overlap = str.match(regExp)?.[0];
     return overlap ? str.replace(overlap, `/${overlap}`) : str;
 }
+
 
 export default routes;
