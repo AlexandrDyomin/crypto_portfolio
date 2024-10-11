@@ -8,7 +8,7 @@ html {
 }
 
 .page {
-    padding: 1.5rem 1.5rem 4rem;
+    padding: 3rem 1.5rem 4rem;
     font-size: 1.6rem;
     background-color: #ffa700;
     min-height: 100vh;
@@ -23,13 +23,6 @@ html {
 header {
     margin-bottom: 3rem;
     position: relative;
-}
-
-.user {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
 h1 {

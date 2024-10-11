@@ -22,7 +22,8 @@ var routes = {
             cache: true,
             title: 'Кошелёк',
             h1: 'Кошелёк',
-            rows: formatData(rows)
+            rows: formatData(rows),
+            userName: this.login
         }));
 
         async function getRows(userId) {
@@ -71,7 +72,8 @@ var routes = {
             cache: true,
             title: 'Транзакции',
             h1: 'Транзакции',
-            rows
+            rows,
+            userName: this.login
         }));
 
         async function getRows(userId) {
@@ -112,7 +114,8 @@ var routes = {
             cache: true,
             title: 'Нереализованная прибыль(убыток)',
             h1: 'Нереализованная прибыль(убыток)',
-            rows
+            rows,
+            userName: this.login
         }));
 
         async function getRows(userId) {
@@ -167,7 +170,8 @@ var routes = {
             cache: true,
             title: 'Реализованная прибыль(убыток)',
             h1: 'Реализованная прибыль(убыток)',
-            rows
+            rows,
+            userName: this.login
         }));
 
         async function getRows(userId) {
@@ -245,6 +249,7 @@ function decorate(fn) {
             var { session_id, authError, accountCreationError } = parseCookie(req.headers.cookie || '');
             if (session_id) {
                 var userId = await getUserId(session_id);
+                var { login } = (await makeReqToDb('SELECT login FROM users WHERE id=$1', [userId])).rows[0];
             }
             
             var { pathname } = new URL(req.url, `http://${HOST}:${PORT}`);
@@ -266,7 +271,7 @@ function decorate(fn) {
                 return;
             }
 
-            await fn.call({ session_id, userId, warning }, req, res)
+            await fn.call({ session_id, userId, login, warning }, req, res)
         } catch (error) {
             sendErrorPage(res, error);
         }
