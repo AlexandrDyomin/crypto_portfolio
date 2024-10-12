@@ -240,6 +240,12 @@ var routes = {
             );
             return result.rowCount;
         }
+    }),
+    '/getBalance': decorate(async function getBalance(req, res) {
+        var coins = (await makeReqToDb(requests.getWallet, [this.userId])).rows;
+        var balance = await calcBalance(coins);
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(balance.toString());
     })
 };
 
@@ -462,7 +468,7 @@ async function getAllPairs() {
         var result = data.map((item) => {
             return formatPairForView(item.symbol)
         });
-        return result;    
+        return result;
     } catch (error) {
         return [];
     }
@@ -474,6 +480,5 @@ function formatPairForView(str) {
     var overlap = str.match(regExp)?.[0];
     return overlap ? str.replace(overlap, `/${overlap}`) : str;
 }
-
 
 export default routes;

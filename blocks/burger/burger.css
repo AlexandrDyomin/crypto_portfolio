@@ -1,0 +1,38 @@
+.user[data-status='open'] .user_box {
+    top: 0;
+}
+
+.user_button {
+    width: 5rem;
+    height: 5rem;
+    border: none;
+    border-radius: 50%;
+
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    background-image: url(../../blocks/burger/man.png);
+    background-position: center;
+    background-size: contain;
+}
+
+.user_box {
+    position: fixed;
+    background: black;
+    left: 0;
+    right: 0;
+    top: -100%;
+    height: 100vh;
+    z-index: 1;
+    transition: top .2s linear;
+}
+
+.user_name {
+    text-align: center;
+    font-size: 2rem;
+    color: white;
+    padding: 3rem;
+}

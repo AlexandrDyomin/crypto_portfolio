@@ -2,7 +2,7 @@ export function calcBalance(coins, coin = 'USDT') {
     return new Promise((resolve, reject) => {
         var balance = 0;
         var data = coins.map(
-            ({ coinName }, i) => fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${coinName}${coin}`)
+            ({ ticker }, i) => fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${ticker}${coin}`)
                 .then((response) => response.json())
                 .then((data) => {
                     var price = data.price || 0;

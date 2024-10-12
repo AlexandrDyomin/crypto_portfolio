@@ -1,10 +1,15 @@
 @import '../reset.css';
 @import '../../blocks/nav/nav.css';
+@import '../../blocks/burger/burger.css';
 
 html {
     font-size: 10px;
     font-family: Arial, Helvetica, sans-serif;
     color: #2D3E40;
+}
+
+body[data-overflow="hidden"] {
+    overflow: hidden;
 }
 
 .page {
