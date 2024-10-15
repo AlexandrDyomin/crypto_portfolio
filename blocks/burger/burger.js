@@ -18,7 +18,7 @@ function getBalance(response) {
 }
 
 function formatBalance(balance) {
-	return `${(+balance).toFixed(2)}$`
+	return `$${(+balance).toFixed(2)}`
 }
 
 function displayBalance(balance) {

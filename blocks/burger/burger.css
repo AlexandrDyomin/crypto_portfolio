@@ -36,3 +36,60 @@
     color: white;
     padding: 3rem;
 }
+
+.user_money{
+    color: #258646;
+    text-align: center;
+    font-weight: 600;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.user_profit {
+    display: flex;
+    gap: 2.2rem;
+    justify-content: center;
+    color: #258646;
+    font-weight: 500;
+    font-size: 1.4rem;
+    margin-bottom: 2.5rem;
+}
+
+.user_periods {
+    display:flex;
+    justify-content: center;   
+    gap: 1px;
+}
+
+.user_text {
+    padding: 0.7rem 0.9rem;
+    background-color: rgba(225, 176, 0, 0.3);
+    color: white;
+}
+.user_text:nth-child(2) {
+    border-top-left-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+
+.user_text:nth-child(10) {
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+}
+.user_radio {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    clip: rect(0 0 0 0);
+    overflow: hidden;
+}
+
+.user_radio:checked + .user_text {
+    background-color: rgba(225, 176, 0, 1);
+}
+
+.user_radio:focus-visible + .user_text {
+    outline: 1px solid white;
+    border: 2px solid black;
+}
+
+

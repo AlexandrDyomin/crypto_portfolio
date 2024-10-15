@@ -3,3 +3,11 @@
     .user_box 
         .user_name #{userName}
         .user_money #{userMoney}
+        .user_profit
+            .user_m +$45
+            .user_p + 9.23% (1н)
+        .user_periods
+            each period, i in ["1д", "1н", "1м", "1г", "всё время"]
+                input.user_radio(id=i type="radio" name="period" value=period)
+                label.user_text(for=i)=period
+
