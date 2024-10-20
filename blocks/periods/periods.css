@@ -1,0 +1,44 @@
+.periods {
+    display:flex;
+    justify-content: center;   
+    gap: 1px;
+}
+
+.periods_text {
+    padding: 0.7rem 0.9rem;
+    background-color: rgba(225, 176, 0, 0.3);
+    color: white;
+}
+.periods_text:nth-child(2) {
+    border-top-left-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+
+.periods_text:nth-child(10) {
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+}
+.periods_radio {
+    width: 1px;
+    height: 1px;
+    position: absolute;
+    clip: rect(0 0 0 0);
+    overflow: hidden;
+}
+
+.periods_radio:checked + .periods_text {
+    background-color: rgb(225, 176, 0);
+}
+
+.periods_radio:focus-visible + .periods_text {
+    outline: 1px solid white;
+    border: 2px solid black;
+}
+
+.periods[data-color=green] .periods_text {
+    background-color: rgba(37, 134, 70, 0.4);
+}
+
+.periods[data-color=green] .periods_radio:checked + .periods_text {
+    background-color: rgb(37, 134, 70);
+}

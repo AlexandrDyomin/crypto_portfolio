@@ -1,6 +1,8 @@
 @import '../reset.css';
 @import '../../blocks/nav/nav.css';
 @import '../../blocks/burger/burger.css';
+@import '../../blocks/periods/periods.css';
+
 
 html {
     font-size: 10px;

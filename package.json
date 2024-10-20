@@ -32,7 +32,7 @@
       "distDir": "dist/transaction_form"
     },
     "realizedPnL": {
-      "source": [],
+      "source": ["realizedPnL/style.css", "realizedPnL/script.js"],
       "distDir": "dist/realizedPnL"
     },
     "unrealizedPnL": {

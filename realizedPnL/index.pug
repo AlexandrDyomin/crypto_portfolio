@@ -2,9 +2,16 @@ extends ../layouts/content/content.pug
 
 block parts 
     include ../blocks/c-row/c-row.pug
+    include ../blocks/periods/periods.pug
 block append variables 
     -var activeLink = 3
-block content 
+block append styles
+    link(rel="stylesheet" href="realizedPnL/style.css")
+block append scripts
+    script(type="module" src="realizedPnL/script.js" defer)
+block content
+    .wrapper-periods
+        +periods({ baseId: "radio", radioName: "realizedPnL", checkedValue: "всё время" })(data-color="green") 
     .table-container-outer 
         .table-container
             table.info 

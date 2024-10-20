@@ -1,0 +1,6 @@
+mixin periods({ baseId, radioName, checkedValue }, values=["1д", "1н", "1м", "1г", "всё время"])
+    - var lastIndex = values.length - 1
+    .periods(data-color!=attributes['data-color'])
+        each period, i in values
+            input.periods_radio(id=baseId+i, type="radio", name=radioName, value=period checked = checkedValue === period ? true : false)
+            label.periods_text(for=baseId+i)=period

@@ -161,21 +161,35 @@ var routes = {
         }
     }),
     '/realizedPnL': decorate(async function sendRealizedPnL(req, res) {
-        var rows = await getRows(this.userId);
+        var url = new URL(req.url, `http://${HOST}:${PORT}`);
+        var { startDate, endDate } = parseSearchParm(url);
+
+        if (!startDate && !endDate) {
+            var dates = (await makeReqToDb('SELECT min(date) AS start_date, max(date) AS end_date FROM transactions WHERE user_id = $1', [this.userId])).rows[0];
+            startDate = dates.start_date;
+            endDate = dates.end_date;
+        }
+
+        var rows = await getRows(this.userId, startDate, endDate);
         dropTmpTbales('last_date_of_sale', 'total_purchased', 'avg_purchase_price', 'total_sold', 'avg_sold_price');
         
         formatDataPnLForView(rows);
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(renderFile('./realizedPnL/index.pug', { 
-            cache: true,
-            title: 'Реализованная прибыль(убыток)',
-            h1: 'Реализованная прибыль(убыток)',
-            rows,
-            userName: this.login
-        }));
+        if(Object.keys(parseSearchParm(url)).length === 0) {
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(renderFile('./realizedPnL/index.pug', { 
+                cache: true,
+                title: 'Реализованная прибыль(убыток)',
+                h1: 'Реализованная прибыль(убыток)',
+                rows,
+                userName: this.login
+            }));
+        } else {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8'});
+            res.end(JSON.stringify(rows));
+        }
 
-        async function getRows(userId) {
-            var result = await makeReqToDb(requests.getRealizedPnL, [userId], [userId], [userId], [userId], [userId]);
+        async function getRows(userId, startDate, endDate) {
+            var result = await makeReqToDb(requests.getRealizedPnL, [userId, startDate, endDate], [userId, startDate, endDate], [userId, startDate, endDate], [userId, startDate, endDate], [userId, startDate, endDate]);
             return result.rows;
         }
 
@@ -480,5 +494,62 @@ function formatPairForView(str) {
     var overlap = str.match(regExp)?.[0];
     return overlap ? str.replace(overlap, `/${overlap}`) : str;
 }
+
+
+
+
+
+
+export async function getRealizedPnL() {
+    var r = [
+        `CREATE TEMPORARY TABLE IF NOT EXISTS last_date_of_sale AS
+        SELECT crypto_pair, max(date) as last_date_of_sale
+        FROM transactions
+        WHERE transaction_type = 'продажа'  
+            AND user_id = $1
+            AND date >= $2
+            AND date <= $3
+        GROUP BY crypto_pair`,
+        `CREATE TEMPORARY TABLE IF NOT EXISTS total_purchased AS
+        SELECT crypto_pair, sum(amount) as total_purchased
+        FROM transactions
+        JOIN last_date_of_sale USING(crypto_pair)
+        WHERE transaction_type = 'покупка' AND date <= last_date_of_sale AND user_id = $1
+            AND date >= $2
+            AND date <= $3
+        GROUP BY crypto_pair`,
+        `CREATE TEMPORARY TABLE IF NOT EXISTS avg_purchase_price AS
+        SELECT crypto_pair, sum(amount / total_purchased * price) as avg_purchase_price
+        FROM transactions
+        JOIN total_purchased USING(crypto_pair)
+        JOIN last_date_of_sale USING (crypto_pair)
+        WHERE transaction_type = 'покупка' AND date <= last_date_of_sale AND user_id = $1
+            AND date >= $2
+            AND date <= $3
+        GROUP BY crypto_pair`,
+        `CREATE TEMPORARY TABLE IF NOT EXISTS total_sold AS
+        SELECT crypto_pair, sum(amount) as total_sold
+        FROM transactions
+        WHERE transaction_type = 'продажа' AND user_id = $1
+            AND date >= $2
+            AND date <= $3
+        GROUP BY crypto_pair`,
+        `CREATE TEMPORARY TABLE IF NOT EXISTS avg_sold_price AS
+        SELECT crypto_pair, sum(amount / total_sold * price) as avg_sold_price
+        FROM transactions
+        JOIN total_sold USING(crypto_pair)
+        WHERE transaction_type = 'продажа' AND user_id = $1
+            AND date >= $2
+            AND date <= $3
+        GROUP BY crypto_pair`,
+        `SELECT crypto_pair, total_sold, round(avg_sold_price, 7) AS avg_sold_price, ROUND(total_sold * avg_sold_price, 2) AS received, ROUND((avg_sold_price / avg_purchase_price - 1) * 100, 2) || '% | ' || ROUND((avg_sold_price - avg_purchase_price) * total_sold, 2) as profit
+        FROM total_sold
+        JOIN avg_sold_price USING(crypto_pair)
+        JOIN avg_purchase_price USING(crypto_pair)`
+    ]
+    var res = await makeReqToDb(r, [22, '2024-10-10', '2024-10-15'], [22, '2024-10-10', '2024-10-15'], [22, '2024-10-10', '2024-10-15'], [22, '2024-10-10', '2024-10-15'], [22, '2024-10-10', '2024-10-15'])
+    console.log(res.rows)
+}
+// getRealizedPnL()
 
 export default routes;
