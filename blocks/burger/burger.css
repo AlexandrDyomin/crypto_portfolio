@@ -1,4 +1,6 @@
-.user[data-status='open'] .user_box {
+@import '../chart/chart.css';
+
+.user[data-status="open"] .user_box {
     top: 0;
 }
 
@@ -27,7 +29,7 @@
     top: -100%;
     height: 100vh;
     z-index: 1;
-    transition: top .2s linear;
+    transition: top 0.2s linear;
 }
 
 .user_name {
@@ -37,7 +39,7 @@
     padding: 3rem;
 }
 
-.user_money{
+.user_money {
     color: #258646;
     text-align: center;
     font-weight: 600;

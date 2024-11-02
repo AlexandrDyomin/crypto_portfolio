@@ -9,18 +9,19 @@ html(lang="ru")
         block styles
             link(rel="stylesheet", href="dist/layouts/content/style.css")
         block scripts
-            script(type="module", src="dist/layouts/content/script.js" defer) 
+            script(type="module", src="dist/layouts/content/script.js" defer)
+            script(type="text/javascript" src="https://www.gstatic.com/charts/loader.js")
         block parts
 
 
         block variables
             - var PROTOCOL = process.env.PROTOCOL
-            - var HOST = process.env.HOST 
+            - var HOST = process.env.HOST
             - var PORT = process.env.PORT
-    body 
-        .page 
+    body
+        .page
             .container
-                header 
+                header
                     block header
                         h1 #{title}
                         include ../../blocks/burger/burger.pug

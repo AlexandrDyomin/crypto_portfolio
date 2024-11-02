@@ -163,7 +163,6 @@ var routes = {
     '/realizedPnL': decorate(async function sendRealizedPnL(req, res) {
         var url = new URL(req.url, `http://${HOST}:${PORT}`);
         var { startDate, endDate } = parseSearchParm(url);
-
         if (!startDate && !endDate) {
             var dates = (await makeReqToDb('SELECT min(date) AS start_date, max(date) AS end_date FROM transactions WHERE user_id = $1', [this.userId])).rows[0];
             startDate = dates.start_date;

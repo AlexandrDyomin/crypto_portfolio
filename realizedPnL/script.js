@@ -34,7 +34,7 @@ async function handleChangePeriods(e) {
 
 	url.searchParams.set('startDate', dates[value].startDate);
 	url.searchParams.set('endDate', dates[value].endDate);
-
+	
 	var request = await fetch(url.href);
 	var result = await request.json();
 	
